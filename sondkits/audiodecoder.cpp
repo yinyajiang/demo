@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "avutils.h"
+#include  <cassert>
 extern "C" {
 #include <libavutil/avutil.h>
 #include <libavutil/opt.h>

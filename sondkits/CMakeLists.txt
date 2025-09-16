@@ -49,7 +49,11 @@ if(WIN32)
         "${ffmpeg_base_path}/lib/swresample.lib"
     )
 else()
-    set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac-arm64")
+    else()
+        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac")
+    endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
     target_link_libraries(sondkits PRIVATE
         "${ffmpeg_base_path}/lib/libavcodec.dylib"
@@ -62,5 +66,5 @@ else()
 endif()
 
 # SoundTouch
-add_subdirectory(3rd/soundtouch)
-target_link_libraries(sondkits PRIVATE SoundTouch)
+#add_subdirectory(3rd/soundtouch)
+#target_link_libraries(sondkits PRIVATE SoundTouch)
