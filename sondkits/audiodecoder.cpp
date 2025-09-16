@@ -1,6 +1,7 @@
 #include "audiodecoder.h"
 #include "avutils.h"
 #include <cassert>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 extern "C" {
@@ -8,6 +9,12 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
 }
+
+#define DEBUG_SAVE_PCM 1
+#ifdef DEBUG_SAVE_PCM
+// ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
+std::ofstream _pcm_ofs("./decode.pcm", std::ios::binary);
+#endif
 
 AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
                            AVSampleFormat target_sample_format)
@@ -205,6 +212,14 @@ uint8_t *AudioDecoder::decode_next_frame_data(int *out_data_size) {
   }
 
   *out_data_size = frame_data_size;
+
+#if DEBUG_SAVE_PCM
+  if (frame_data_size > 0) {
+    _pcm_ofs.write(reinterpret_cast<char *>(frame_data), frame_data_size);
+    _pcm_ofs.flush();
+  }
+#endif
+
   return frame_data;
 }
 
