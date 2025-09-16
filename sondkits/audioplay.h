@@ -44,6 +44,7 @@ public:
 
   qint64 available_ms();
   void clear();
+  void add_data(const uint8_t *data, int size);
 signals:
   void signal_request_more_data(qint64 size);
   void signal_request_more_data_sync(qint64 size);

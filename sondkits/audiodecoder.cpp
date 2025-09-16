@@ -10,7 +10,7 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-#define DEBUG_SAVE_PCM 1
+#define DEBUG_SAVE_PCM 0
 #ifdef DEBUG_SAVE_PCM
 // ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
 std::ofstream _pcm_ofs("./decode.pcm", std::ios::binary);

@@ -9,11 +9,13 @@ PCMDataSource::PCMDataSource(QAudioFormat audio_format, qint64 threshold_ms,
                              QObject *parent)
     : QIODevice(parent), m_audio_format(audio_format), m_size(0), m_pos(0),
       m_threshold_ms(threshold_ms) {
-  open(QIODevice::ReadWrite);
+  open(QIODevice::ReadOnly);
   // 10 seconds
-  int max_size = audio_format.sampleRate() * audio_format.channelCount() *
-                 audio_format.bytesPerSample() *
-                 qMax(qint64(DEFAULT_THRESHOLD_SECONDS), threshold_ms / 1000);
+  // int max_size = audio_format.sampleRate() * audio_format.channelCount() *
+  //                audio_format.bytesPerSample() *
+  //                qMax(qint64(DEFAULT_THRESHOLD_SECONDS), threshold_ms /
+  //                1000);
+  int max_size = 1024 * 1024 * 100;
   m_buffer.resize(max_size);
 }
 
@@ -49,9 +51,10 @@ qint64 PCMDataSource::readData(char *data, qint64 maxlen) {
   return len;
 }
 
-qint64 PCMDataSource::writeData(const char *data, qint64 len) {
+qint64 PCMDataSource::writeData(const char *data, qint64 len) { return 0; }
+void PCMDataSource::add_data(const uint8_t *data, int len) {
   if (len <= 0 || !data) {
-    return 0;
+    return;
   }
 
   // 检查缓冲区状态和边界
@@ -88,14 +91,14 @@ qint64 PCMDataSource::writeData(const char *data, qint64 len) {
   }
 
   if (len <= 0 || m_size + len > m_buffer.size()) {
-    return 0;
+    return;
   }
 
   // 安全地写入数据
   memcpy(m_buffer.data() + m_size, data, len);
   m_size += len;
 
-  return len;
+  return;
 }
 
 qint64 PCMDataSource::available_ms() {
@@ -131,7 +134,7 @@ AudioPlay::~AudioPlay() {}
 
 void AudioPlay::on_state_changed() {
   if (m_audio_sink->state() == QAudio::IdleState) {
-    emit signal_request_more_data(1000);
+    // emit signal_request_more_data(1000);
   } else if (m_audio_sink->state() == QAudio::StoppedState) {
     m_pcm_data_source->clear();
   }
@@ -139,7 +142,7 @@ void AudioPlay::on_state_changed() {
 
 void AudioPlay::play() {
   if (m_audio_sink->state() == QAudio::StoppedState) {
-    m_pcm_data_source->clear();
+    // m_pcm_data_source->clear();
     m_audio_sink->start(m_pcm_data_source.get());
   } else if (m_audio_sink->state() == QAudio::SuspendedState) {
     m_audio_sink->resume();
@@ -169,12 +172,12 @@ void AudioPlay::input_pcm_data(const uint8_t *data, int size) {
   }
 
   // 限制单次写入的最大大小，防止过大的数据块
-  const int MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
-  if (size > MAX_CHUNK_SIZE) {
-    size = MAX_CHUNK_SIZE;
-  }
+  // const int MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
+  // if (size > MAX_CHUNK_SIZE) {
+  //   size = MAX_CHUNK_SIZE;
+  // }
 
-  m_pcm_data_source->write(reinterpret_cast<const char *>(data), size);
+  m_pcm_data_source->add_data(data, size);
 }
 
 void AudioPlay::set_volume(float volume) {
