@@ -6,6 +6,7 @@
 
 class AudioPlay;
 class AudioDecoder;
+class DecodeQueue;
 class AudioPlayer : public QObject {
   Q_OBJECT
 public:
@@ -16,10 +17,8 @@ public:
   void stop();
   bool is_playing();
 
-protected slots:
-  void on_request_more_data(qint64 size);
-
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
-  std::unique_ptr<AudioDecoder> m_audio_decoder;
+  std::shared_ptr<DecodeQueue> m_decode_queue;
+  std::shared_ptr<AudioDecoder> m_audio_decoder;
 };

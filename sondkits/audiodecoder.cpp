@@ -1,5 +1,5 @@
 #include "audiodecoder.h"
-#include "avutils.h"
+#include "common.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -10,10 +10,8 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-#define DEBUG_SAVE_PCM 0
-#ifdef DEBUG_SAVE_PCM
-// ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
-std::ofstream _pcm_ofs("./decode.pcm", std::ios::binary);
+#if DEBUG_SAVE_PCM
+std::ofstream _pcm_ofs(DEBUG_SAVE_PCM_PATH, std::ios::binary);
 #endif
 
 AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
@@ -29,8 +27,7 @@ AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
 AudioDecoder::~AudioDecoder() { close(); }
 
 void AudioDecoder::open(const std::filesystem::path &in_fpath) {
-  if (avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr,
-                          nullptr) < 0) {
+  if (avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr, nullptr) < 0) {
     throw std::runtime_error("Could not open input file");
   }
 
@@ -38,8 +35,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
     throw std::runtime_error("Failed to retrieve input stream information");
   }
 
-  int stream_index =
-      av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+  int stream_index = av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
   if (stream_index < 0) {
     throw std::runtime_error("Could not find audio stream in the input file");
   }
@@ -47,11 +43,9 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   AVStream *audio_stream = m_fmt_ctx->streams[stream_index];
 
   // Find the decoder for the audio stream
-  const AVCodec *decoder =
-      avcodec_find_decoder(audio_stream->codecpar->codec_id);
+  const AVCodec *decoder = avcodec_find_decoder(audio_stream->codecpar->codec_id);
   if (!decoder) {
-    throw std::runtime_error("Failed to find decoder for codec ID: " +
-                             std::to_string(audio_stream->codecpar->codec_id));
+    throw std::runtime_error("Failed to find decoder for codec ID: " + std::to_string(audio_stream->codecpar->codec_id));
   }
 
   // Allocate the decoder context
@@ -61,8 +55,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   }
 
   if (avcodec_parameters_to_context(m_dec_ctx, audio_stream->codecpar) < 0) {
-    throw std::runtime_error(
-        "Failed to copy decoder parameters to input decoder context");
+    throw std::runtime_error("Failed to copy decoder parameters to input decoder context");
   }
 
   // Set the time base
@@ -72,9 +65,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   // Open the decoder
   int ret = avcodec_open2(m_dec_ctx, decoder, nullptr);
   if (ret < 0) {
-    throw std::runtime_error("Failed to open decoder for stream #" +
-                             std::to_string(stream_index) + ": " +
-                             av_err2string(ret));
+    throw std::runtime_error("Failed to open decoder for stream #" + std::to_string(stream_index) + ": " + av_err2string(ret));
   }
 
   m_in_astream_idx = stream_index;
@@ -99,7 +90,21 @@ double AudioDecoder::duration() const {
   return double(m_fmt_ctx->duration) / AV_TIME_BASE;
 }
 
-bool AudioDecoder::is_end() const { return m_is_end; }
+bool AudioDecoder::is_end() const {
+#if DEBUG_SAVE_PCM
+  if (m_is_end) {
+    _pcm_ofs.close();
+  }
+#endif
+  return m_is_end;
+}
+
+void AudioDecoder::free_data(uint8_t *data) {
+  if (!data) {
+    return;
+  }
+  av_freep(&data);
+}
 
 void AudioDecoder::close() {
   if (m_dec_ctx) {
@@ -142,25 +147,13 @@ void AudioDecoder::init_swr() {
   int ret = swr_init(swr_ctx);
   if (ret < 0) {
     swr_free(&swr_ctx);
-    throw std::runtime_error("Failed to initialize resampler: " +
-                             av_err2string(ret));
+    throw std::runtime_error("Failed to initialize resampler: " + av_err2string(ret));
   }
   m_swr_ctx = swr_ctx;
 }
 
-uint8_t *AudioDecoder::decode_next_frame_data(int *out_data_size) {
-  if (!out_data_size) {
-    return nullptr;
-  }
-
-  *out_data_size = 0;
-
-  if (!m_fmt_ctx || !m_dec_ctx || !m_packet || !m_frame) {
-    return nullptr;
-  }
-
-  uint8_t *frame_data = nullptr;
-  int frame_data_size = 0;
+FrameDataList AudioDecoder::decode_next_frame_data() {
+  FrameDataList frame_data_list;
 
   while (true) {
     int ret = av_read_frame(m_fmt_ctx, m_packet);
@@ -170,9 +163,7 @@ uint8_t *AudioDecoder::decode_next_frame_data(int *out_data_size) {
         // 刷新解码器，获取剩余帧
         if (avcodec_send_packet(m_dec_ctx, nullptr) >= 0) {
           while (avcodec_receive_frame(m_dec_ctx, m_frame) == 0) {
-            if (m_frame && m_frame->data[0] && m_frame->nb_samples > 0) {
-              resample_frame_append(m_frame, &frame_data, &frame_data_size);
-            }
+              frame_data_list.push_back(std::move(resample_frame(m_frame)));
           }
         }
       } else {
@@ -184,13 +175,10 @@ uint8_t *AudioDecoder::decode_next_frame_data(int *out_data_size) {
 
     // 只处理音频流的包
     if (m_packet->stream_index != m_in_astream_idx) {
-      av_packet_unref(m_packet);
       continue;
     }
 
     ret = avcodec_send_packet(m_dec_ctx, m_packet);
-    av_packet_unref(m_packet); // 及时释放包
-
     if (ret < 0) {
       if (ret != AVERROR(EAGAIN)) {
         std::cerr << "Error sending packet: " << av_err2string(ret)
@@ -201,58 +189,31 @@ uint8_t *AudioDecoder::decode_next_frame_data(int *out_data_size) {
 
     // 接收解码帧
     while ((ret = avcodec_receive_frame(m_dec_ctx, m_frame)) == 0) {
-      if (m_frame && m_frame->data[0] && m_frame->nb_samples > 0) {
-        resample_frame_append(m_frame, &frame_data, &frame_data_size);
-      }
+        frame_data_list.push_back(std::move(resample_frame(m_frame)));
     }
 
-    if (frame_data_size > 0) {
+    if (frame_data_list.size() > 0) {
       break;
     }
   }
 
-  *out_data_size = frame_data_size;
 
 #if DEBUG_SAVE_PCM
-  if (frame_data_size > 0) {
-    _pcm_ofs.write(reinterpret_cast<char *>(frame_data), frame_data_size);
-    _pcm_ofs.flush();
+  if (frame_data_list.size() > 0) {
+    for (auto &frame_data : frame_data_list) {
+      _pcm_ofs.write(reinterpret_cast<char *>(frame_data.data), frame_data.size);
+      _pcm_ofs.flush();
+    }
   }
 #endif
 
-  return frame_data;
+  return std::move(frame_data_list);
 }
 
-void AudioDecoder::resample_frame_append(AVFrame *frame, uint8_t **audio_data,
-                                         int *data_size) {
-  if (!frame || !audio_data || !data_size) {
-    return;
-  }
 
-  int pdata_size = 0;
-  auto pdata = resample_frame(frame, &pdata_size);
-
-  if (pdata && pdata[0] && pdata_size > 0) {
-    av_append_buffer(audio_data, data_size, pdata[0], pdata_size);
-    av_freep(&pdata[0]);
-  }
-
-  if (pdata) {
-    av_freep(&pdata);
-  }
-}
-
-uint8_t **AudioDecoder::resample_frame(AVFrame *frame, int *out_buffer_size) {
-  if (!frame || !out_buffer_size || !m_swr_ctx) {
-    if (out_buffer_size)
-      *out_buffer_size = 0;
-    return nullptr;
-  }
-
-  *out_buffer_size = 0;
-
-  if (frame->nb_samples <= 0) {
-    return nullptr;
+FrameData AudioDecoder::resample_frame(AVFrame *frame) {
+  if (!frame || frame->nb_samples <= 0) {
+    return FrameData{nullptr, 0};
   }
 
   int out_samples = av_rescale_rnd(
@@ -260,7 +221,7 @@ uint8_t **AudioDecoder::resample_frame(AVFrame *frame, int *out_buffer_size) {
       m_target_sample_rate, m_dec_ctx->sample_rate, AV_ROUND_UP);
 
   if (out_samples <= 0) {
-    return nullptr;
+    return FrameData{nullptr, 0};
   }
 
   uint8_t **audio_data = nullptr;
@@ -272,24 +233,24 @@ uint8_t **AudioDecoder::resample_frame(AVFrame *frame, int *out_buffer_size) {
   if (ret < 0) {
     std::cerr << "Error allocating audio buffer: " << av_err2string(ret)
               << std::endl;
-    return nullptr;
+    return FrameData{nullptr, 0};
   }
 
-  int num =
-      swr_convert(m_swr_ctx, audio_data, out_samples,
-                  const_cast<const uint8_t **>(frame->data), frame->nb_samples);
-  if (num < 0) {
+  int num = swr_convert(m_swr_ctx, audio_data, out_samples, const_cast<const uint8_t **>(frame->data), frame->nb_samples);
+  if (num <= 0) {
     std::cerr << "Error converting frame: " << av_err2string(num) << std::endl;
     if (audio_data) {
       av_freep(&audio_data[0]);
       av_freep(&audio_data);
     }
-    return nullptr;
+    return FrameData{nullptr, 0};
   }
 
-  *out_buffer_size = av_samples_get_buffer_size(&linesize, m_target_channels,
-                                                num, m_target_sample_format, 0);
-  return audio_data;
+  int size = av_samples_get_buffer_size(&linesize, m_target_channels, num,
+                                        m_target_sample_format, 1);
+  auto pdata = audio_data[0];
+  av_freep(&audio_data);
+  return std::move(FrameData{pdata, size});
 }
 
 void AudioDecoder::seek(int64_t time_ms) {

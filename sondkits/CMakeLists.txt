@@ -15,15 +15,20 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Multimedia)
 add_executable(sondkits
   main.cpp
   audiodecoder.cpp
-  avutils.cpp
+  common.cpp
   audioplay.cpp
   audioplayer.cpp
   mainwindow.cpp
+  decodequeue.cpp
+  pcmdatasource.cpp
+
   mainwindow.h
   audiodecoder.h
-  avutils.h
+  common.h
   audioplay.h
   audioplayer.h
+  decodequeue.h
+  pcmdatasource.h
 )
 target_include_directories(sondkits PRIVATE .)
 target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
