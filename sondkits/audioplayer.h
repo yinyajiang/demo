@@ -19,6 +19,4 @@ public:
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
-  std::shared_ptr<DecodeQueue> m_decode_queue;
-  std::shared_ptr<AudioDecoder> m_audio_decoder;
 };

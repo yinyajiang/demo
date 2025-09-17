@@ -27,7 +27,8 @@ AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
 AudioDecoder::~AudioDecoder() { close(); }
 
 void AudioDecoder::open(const std::filesystem::path &in_fpath) {
-  if (avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr, nullptr) < 0) {
+  if (avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr,
+                          nullptr) < 0) {
     throw std::runtime_error("Could not open input file");
   }
 
@@ -35,7 +36,8 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
     throw std::runtime_error("Failed to retrieve input stream information");
   }
 
-  int stream_index = av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
+  int stream_index =
+      av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
   if (stream_index < 0) {
     throw std::runtime_error("Could not find audio stream in the input file");
   }
@@ -43,9 +45,11 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   AVStream *audio_stream = m_fmt_ctx->streams[stream_index];
 
   // Find the decoder for the audio stream
-  const AVCodec *decoder = avcodec_find_decoder(audio_stream->codecpar->codec_id);
+  const AVCodec *decoder =
+      avcodec_find_decoder(audio_stream->codecpar->codec_id);
   if (!decoder) {
-    throw std::runtime_error("Failed to find decoder for codec ID: " + std::to_string(audio_stream->codecpar->codec_id));
+    throw std::runtime_error("Failed to find decoder for codec ID: " +
+                             std::to_string(audio_stream->codecpar->codec_id));
   }
 
   // Allocate the decoder context
@@ -55,7 +59,8 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   }
 
   if (avcodec_parameters_to_context(m_dec_ctx, audio_stream->codecpar) < 0) {
-    throw std::runtime_error("Failed to copy decoder parameters to input decoder context");
+    throw std::runtime_error(
+        "Failed to copy decoder parameters to input decoder context");
   }
 
   // Set the time base
@@ -65,7 +70,9 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   // Open the decoder
   int ret = avcodec_open2(m_dec_ctx, decoder, nullptr);
   if (ret < 0) {
-    throw std::runtime_error("Failed to open decoder for stream #" + std::to_string(stream_index) + ": " + av_err2string(ret));
+    throw std::runtime_error("Failed to open decoder for stream #" +
+                             std::to_string(stream_index) + ": " +
+                             av_err2string(ret));
   }
 
   m_in_astream_idx = stream_index;
@@ -147,7 +154,8 @@ void AudioDecoder::init_swr() {
   int ret = swr_init(swr_ctx);
   if (ret < 0) {
     swr_free(&swr_ctx);
-    throw std::runtime_error("Failed to initialize resampler: " + av_err2string(ret));
+    throw std::runtime_error("Failed to initialize resampler: " +
+                             av_err2string(ret));
   }
   m_swr_ctx = swr_ctx;
 }
@@ -163,7 +171,7 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
         // 刷新解码器，获取剩余帧
         if (avcodec_send_packet(m_dec_ctx, nullptr) >= 0) {
           while (avcodec_receive_frame(m_dec_ctx, m_frame) == 0) {
-              frame_data_list.push_back(std::move(resample_frame(m_frame)));
+            frame_data_list.push_back(std::move(resample_frame(m_frame)));
           }
         }
       } else {
@@ -189,7 +197,7 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
 
     // 接收解码帧
     while ((ret = avcodec_receive_frame(m_dec_ctx, m_frame)) == 0) {
-        frame_data_list.push_back(std::move(resample_frame(m_frame)));
+      frame_data_list.push_back(std::move(resample_frame(m_frame)));
     }
 
     if (frame_data_list.size() > 0) {
@@ -197,11 +205,11 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
     }
   }
 
-
 #if DEBUG_SAVE_PCM
   if (frame_data_list.size() > 0) {
     for (auto &frame_data : frame_data_list) {
-      _pcm_ofs.write(reinterpret_cast<char *>(frame_data.data), frame_data.size);
+      _pcm_ofs.write(reinterpret_cast<char *>(frame_data.data),
+                     frame_data.size);
       _pcm_ofs.flush();
     }
   }
@@ -209,7 +217,6 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
 
   return std::move(frame_data_list);
 }
-
 
 FrameData AudioDecoder::resample_frame(AVFrame *frame) {
   if (!frame || frame->nb_samples <= 0) {
@@ -236,7 +243,9 @@ FrameData AudioDecoder::resample_frame(AVFrame *frame) {
     return FrameData{nullptr, 0};
   }
 
-  int num = swr_convert(m_swr_ctx, audio_data, out_samples, const_cast<const uint8_t **>(frame->data), frame->nb_samples);
+  int num =
+      swr_convert(m_swr_ctx, audio_data, out_samples,
+                  const_cast<const uint8_t **>(frame->data), frame->nb_samples);
   if (num <= 0) {
     std::cerr << "Error converting frame: " << av_err2string(num) << std::endl;
     if (audio_data) {

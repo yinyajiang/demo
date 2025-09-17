@@ -1,21 +1,19 @@
 #include "decodequeue.h"
-#include <mutex>
 #include <iostream>
+#include <mutex>
 
-DecodeQueue::DecodeQueue(std::shared_ptr<DecoderInterface> decoder, int max_buffer_size)
-    : m_decoder(decoder), m_max_buffer_size(max_buffer_size), m_loop_stopped(false), m_abort(false), m_front_pos(0), m_datas_byte_size(0) {
-}
+DecodeQueue::DecodeQueue(std::shared_ptr<DecoderInterface> decoder,
+                         int max_buffer_size)
+    : m_decoder(decoder), m_max_datas_size(max_buffer_size),
+      m_decode_loop_stopped(false), m_abort(false), m_front_pos(0),
+      m_datas_byte_size(0) {}
 
-DecodeQueue::~DecodeQueue() {
-  stop();
-}
+DecodeQueue::~DecodeQueue() { stop(); }
 
 void DecodeQueue::start() {
   m_abort.store(false);
-  m_loop_stopped.store(false);
-  m_thread = std::thread([this]() {
-    decode_loop();
-  });
+  m_decode_loop_stopped.store(false);
+  m_decode_thread = std::thread([this]() { decode_loop(); });
 }
 
 void DecodeQueue::restart() {
@@ -33,38 +31,47 @@ void DecodeQueue::clear() {
 
 void DecodeQueue::stop() {
   m_abort.store(true);
-  if (!is_loop_stopped()) {
-      stop_loop();
-      if (m_thread.joinable()) {
-        m_thread.join();
-      }
+  stop_loop();
+  if (m_decode_thread.joinable()) {
+    m_decode_thread.join();
   }
 }
 
-bool DecodeQueue::is_abort() { return m_abort.load(); }
+bool DecodeQueue::aborted() { return m_abort.load(); }
 
-bool DecodeQueue::is_decode_stopped() { return m_loop_stopped.load(); }
+bool DecodeQueue::read_ended() {
+  return aborted() || (is_empty() && is_decode_stopped());
+}
 
-bool DecodeQueue::is_loop_stopped() { return m_loop_stopped.load(); }
+int64_t DecodeQueue::read_data_until(uint8_t *buffer, int64_t buffer_size) {
+  int64_t readed = 0;
+  while (!read_ended()) {
+    readed += read_data(buffer + readed, buffer_size - readed);
+    if (readed >= buffer_size) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return readed;
+}
 
-bool DecodeQueue::is_empty() { return m_datas.empty(); }
-
-bool DecodeQueue::is_full() { return m_datas.size() >= m_max_buffer_size; }
-
-int64_t DecodeQueue::read_data(uint8_t *buffer, int buffer_size) {
-  // std::unique_lock<std::mutex> lock(m_mutex);
-  // while (is_empty()) {
-  //   if (is_abort()) {
-  //     return 0;
-  //   }
-  //   m_cv_read.wait(lock,[this]()->bool {return is_abort() || !is_empty();});
-  // }
+int64_t DecodeQueue::read_data(uint8_t *buffer, int64_t buffer_size) {
+  std::unique_lock<std::mutex> lock(m_mutex);
+  while (is_empty()) {
+    if (aborted()) {
+      return 0;
+    }
+    m_cv_read.wait(lock, [this]() -> bool {
+      return aborted() || !is_empty() || is_decode_stopped();
+    });
+  }
 
   int64_t readed = 0;
   bool first = true;
 
   int count = 0;
-  for (auto it = m_datas.begin(); it != m_datas.end() && readed < buffer_size;) {
+  for (auto it = m_datas.begin();
+       it != m_datas.end() && readed < buffer_size;) {
     auto &data = *it;
     int pos = 0;
     int size = data.size;
@@ -80,18 +87,18 @@ int64_t DecodeQueue::read_data(uint8_t *buffer, int buffer_size) {
 
       m_decoder->free_data(data.data);
       it = m_datas.erase(it);
-      //m_front_pos.store(0);
-      //m_datas_byte_size.fetch_sub(size);
+      m_front_pos.store(0);
+      m_datas_byte_size.fetch_sub(size);
     } else {
-      memcpy(buffer + readed, data.data + pos, buffer_size - readed);
-      readed += buffer_size - readed;
-      //m_front_pos.fetch_add(buffer_size - readed);
+      auto copyed = buffer_size - readed;
+      memcpy(buffer + readed, data.data + pos, copyed);
+      readed += copyed;
+      m_front_pos.fetch_add(copyed);
       ++it;
     }
   }
- 
-  //m_cv_decode.notify_one();
-  std::cout << "### read:" << readed << std::endl;
+
+  m_cv_decode.notify_one();
   return readed;
 }
 
@@ -99,14 +106,15 @@ int64_t DecodeQueue::bytes_available() {
   return m_datas_byte_size.load() - m_front_pos.load();
 }
 
-
 FrameData DecodeQueue::pop() {
   std::unique_lock<std::mutex> lock(m_mutex);
   while (is_empty()) {
-    if (is_abort()) {
+    if (aborted()) {
       return FrameData();
     }
-    m_cv_read.wait(lock,[this]()->bool {return is_abort() || !is_empty();});
+    m_cv_read.wait(lock, [this]() -> bool {
+      return aborted() || !is_empty() || is_decode_stopped();
+    });
   }
   auto data = m_datas.front();
   m_datas.pop_front();
@@ -118,10 +126,10 @@ FrameData DecodeQueue::pop() {
   return std::move(data);
 }
 
-void DecodeQueue::push(FrameDataList&& items) {
+void DecodeQueue::push(FrameDataList &&items) {
   std::unique_lock<std::mutex> lock(m_mutex);
   while (is_full()) {
-    if (is_abort()) {
+    if (aborted()) {
       return;
     }
     m_cv_decode.wait(lock);
@@ -134,27 +142,32 @@ void DecodeQueue::push(FrameDataList&& items) {
 }
 
 void DecodeQueue::decode_loop() {
-  while (!is_abort()) {
-      auto data = m_decoder->decode_next_frame_data();
-      if (is_abort()) {
+  while (!aborted()) {
+    auto data = m_decoder->decode_next_frame_data();
+    if (aborted()) {
+      break;
+    }
+
+    if (data.empty()) {
+      if (m_decoder->is_end()) {
         break;
       }
-    
-      if (data.empty()) {
-        if (m_decoder->is_end()) {
-          break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        continue;
-      }
-      push(std::move(data));
+      std::this_thread::sleep_for(std::chrono::milliseconds(0));
+      continue;
+    }
+    push(std::move(data));
   }
-  // 解码结束
   stop_loop();
 }
 
 void DecodeQueue::stop_loop() {
-  m_loop_stopped.store(true);
+  m_decode_loop_stopped.store(true);
   m_cv_read.notify_all();
   m_cv_decode.notify_all();
 }
+
+bool DecodeQueue::is_empty() { return m_datas.empty(); }
+
+bool DecodeQueue::is_full() { return m_datas.size() >= m_max_datas_size; }
+
+bool DecodeQueue::is_decode_stopped() { return m_decode_loop_stopped.load(); }
