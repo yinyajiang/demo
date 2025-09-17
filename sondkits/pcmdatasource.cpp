@@ -27,32 +27,29 @@ qint64 DecodePCMSource::bytesAvailable() const {
   return m_decode_queue->bytes_available();
 }
 
-PCMDataSourceFile::PCMDataSourceFile(const std::string &file_path,
-                                     QObject *parent)
+FilePCMSource::FilePCMSource(const std::string &file_path, QObject *parent)
     : PCMDataSource(parent), m_file(file_path.c_str()) {
   open(QIODevice::ReadOnly);
 }
 
-qint64 PCMDataSourceFile::readData(char *data, qint64 maxlen) {
+qint64 FilePCMSource::readData(char *data, qint64 maxlen) {
   return m_file.read(data, maxlen);
 }
 
-qint64 PCMDataSourceFile::writeData(const char *data, qint64 len) { return -1; }
+qint64 FilePCMSource::writeData(const char *data, qint64 len) { return -1; }
 
-bool PCMDataSourceFile::atEnd() const { return m_file.atEnd(); }
+bool FilePCMSource::atEnd() const { return m_file.atEnd(); }
 
-qint64 PCMDataSourceFile::bytesAvailable() const {
-  return m_file.bytesAvailable();
-}
+qint64 FilePCMSource::bytesAvailable() const { return m_file.bytesAvailable(); }
 
-void PCMDataSourceFile::start() { m_file.open(QIODevice::ReadOnly); }
+void FilePCMSource::start() { m_file.open(QIODevice::ReadOnly); }
 
-PCMDataSourceMemory::PCMDataSourceMemory(char *data, int size, QObject *parent)
+MemoryPCMSource::MemoryPCMSource(char *data, int size, QObject *parent)
     : PCMDataSource(parent), m_data(data), m_size(size), m_pos(0) {
   open(QIODevice::ReadOnly);
 }
 
-qint64 PCMDataSourceMemory::readData(char *data, qint64 maxlen) {
+qint64 MemoryPCMSource::readData(char *data, qint64 maxlen) {
   if (!data || maxlen <= 0) {
     return 0;
   }
@@ -65,12 +62,10 @@ qint64 PCMDataSourceMemory::readData(char *data, qint64 maxlen) {
   return len;
 }
 
-qint64 PCMDataSourceMemory::writeData(const char *data, qint64 len) {
-  return -1;
-}
+qint64 MemoryPCMSource::writeData(const char *data, qint64 len) { return -1; }
 
-bool PCMDataSourceMemory::atEnd() const { return m_pos >= m_size; }
+bool MemoryPCMSource::atEnd() const { return m_pos >= m_size; }
 
-qint64 PCMDataSourceMemory::bytesAvailable() const { return m_size - m_pos; }
+qint64 MemoryPCMSource::bytesAvailable() const { return m_size - m_pos; }
 
-void PCMDataSourceMemory::start() { m_pos = 0; }
+void MemoryPCMSource::start() { m_pos = 0; }

@@ -34,10 +34,10 @@ private:
   std::shared_ptr<DecodeQueue> m_decode_queue;
 };
 
-class PCMDataSourceFile : public PCMDataSource {
+class FilePCMSource : public PCMDataSource {
   Q_OBJECT
 public:
-  PCMDataSourceFile(const std::string &file_path, QObject *parent = nullptr);
+  FilePCMSource(const std::string &file_path, QObject *parent = nullptr);
 
   void start() override;
   bool atEnd() const override;
@@ -51,10 +51,10 @@ private:
   QFile m_file;
 };
 
-class PCMDataSourceMemory : public PCMDataSource {
+class MemoryPCMSource : public PCMDataSource {
   Q_OBJECT
 public:
-  PCMDataSourceMemory(char *data, int size, QObject *parent = nullptr);
+  MemoryPCMSource(char *data, int size, QObject *parent = nullptr);
 
   void start() override;
   bool atEnd() const override;

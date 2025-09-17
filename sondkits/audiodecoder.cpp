@@ -1,7 +1,6 @@
 #include "audiodecoder.h"
 #include "common.h"
 #include <cassert>
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 extern "C" {
@@ -9,10 +8,6 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
 }
-
-#if DEBUG_SAVE_PCM
-std::ofstream _pcm_ofs(DEBUG_SAVE_PCM_PATH, std::ios::binary);
-#endif
 
 AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
                            AVSampleFormat target_sample_format)
@@ -97,14 +92,7 @@ double AudioDecoder::duration() const {
   return double(m_fmt_ctx->duration) / AV_TIME_BASE;
 }
 
-bool AudioDecoder::is_end() const {
-#if DEBUG_SAVE_PCM
-  if (m_is_end) {
-    _pcm_ofs.close();
-  }
-#endif
-  return m_is_end;
-}
+bool AudioDecoder::is_end() const { return m_is_end; }
 
 void AudioDecoder::free_data(uint8_t *data) {
   if (!data) {
@@ -204,17 +192,6 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
       break;
     }
   }
-
-#if DEBUG_SAVE_PCM
-  if (frame_data_list.size() > 0) {
-    for (auto &frame_data : frame_data_list) {
-      _pcm_ofs.write(reinterpret_cast<char *>(frame_data.data),
-                     frame_data.size);
-      _pcm_ofs.flush();
-    }
-  }
-#endif
-
   return std::move(frame_data_list);
 }
 
