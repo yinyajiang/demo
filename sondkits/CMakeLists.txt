@@ -20,7 +20,9 @@ add_executable(sondkits
   audioplayer.cpp
   mainwindow.cpp
   decodequeue.cpp
-  pcmdatasource.cpp
+  datasource.cpp
+  audiofilter.cpp
+  audioutils.cpp
 
   mainwindow.h
   audiodecoder.h
@@ -28,7 +30,9 @@ add_executable(sondkits
   audioplay.h
   audioplayer.h
   decodequeue.h
-  pcmdatasource.h
+  datasource.h
+  audiofilter.h
+  audioutils.h
 )
 target_include_directories(sondkits PRIVATE .)
 target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
@@ -71,5 +75,6 @@ else()
 endif()
 
 # SoundTouch
-#add_subdirectory(3rd/soundtouch)
-#target_link_libraries(sondkits PRIVATE SoundTouch)
+add_subdirectory(3rd/soundtouch)
+target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/soundtouch/include")
+target_link_libraries(sondkits PRIVATE SoundTouch)

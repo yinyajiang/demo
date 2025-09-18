@@ -3,6 +3,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtCore/QDebug>
 #include <QtCore/QFileInfo>
+#include "common.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -28,9 +29,9 @@ MainWindow::MainWindow(QWidget *parent)
     
     updateUI();
     
-    setWindowTitle("FFmpeg音频播放器");
-    setMinimumSize(500, 400);
-    resize(600, 450);
+    setWindowTitle("频播放器");
+    setMinimumSize(500, 600);
+    resize(500, 600);
 }
 
 MainWindow::~MainWindow()
@@ -75,7 +76,7 @@ void MainWindow::setupUI()
     controlLayout->addWidget(m_stopButton);
     controlLayout->addStretch();
     
-    // 进度控制组
+    // 播放进度组
     auto progressGroup = new QGroupBox("播放进度");
     auto progressMainLayout = new QVBoxLayout(progressGroup);
     
@@ -86,16 +87,17 @@ void MainWindow::setupUI()
     m_progressSlider->setEnabled(false);
     
     // 时间标签布局
-    auto progressLayout = new QHBoxLayout();
+    auto timelabelLayout = new QHBoxLayout();
     m_currentTimeLabel = new QLabel("00:00");
     m_totalTimeLabel = new QLabel("00:00");
     
-    progressLayout->addWidget(m_currentTimeLabel);
-    progressLayout->addStretch();
-    progressLayout->addWidget(m_totalTimeLabel);
-    
+    timelabelLayout->addWidget(m_currentTimeLabel);
+    timelabelLayout->addStretch();
+    timelabelLayout->addWidget(m_totalTimeLabel);
+
     progressMainLayout->addWidget(m_progressSlider);
-    progressMainLayout->addLayout(progressLayout);
+    progressMainLayout->addStretch();
+    progressMainLayout->addLayout(timelabelLayout);
     
     // 音量控制组
     auto volumeGroup = new QGroupBox("音量控制");
@@ -104,10 +106,10 @@ void MainWindow::setupUI()
     m_volumeLabel = new QLabel("音量:");
     m_volumeSlider = new QSlider(Qt::Horizontal);
     m_volumeSlider->setRange(0, 100);
-    m_volumeSlider->setValue(80);
+    m_volumeSlider->setValue(100);
     m_volumeSlider->setFixedWidth(150);
     
-    auto volumeValueLabel = new QLabel("80%");
+    auto volumeValueLabel = new QLabel(QString::number(m_volumeSlider->value()) + "%");
     connect(m_volumeSlider, &QSlider::valueChanged, [volumeValueLabel](int value) {
         volumeValueLabel->setText(QString("%1%").arg(value));
     });
@@ -121,7 +123,7 @@ void MainWindow::setupUI()
     auto balanceGroup = new QGroupBox("声道平衡");
     auto balanceLayout = new QHBoxLayout(balanceGroup);
     
-    m_balanceLabel = new QLabel("平衡:");
+    auto balanceLabel = new QLabel("平衡:");
     m_balanceSlider = new QSlider(Qt::Horizontal);
     m_balanceSlider->setRange(-100, 100); // -100到100，0为中间
     m_balanceSlider->setValue(0);
@@ -131,7 +133,7 @@ void MainWindow::setupUI()
     m_balanceSlider->setTickPosition(QSlider::TicksBelow);
     m_balanceSlider->setTickInterval(50); // 每50个单位一个刻度
     
-    m_balanceValueLabel = new QLabel("中");
+    m_balanceValueLabel = new QLabel("0");
     m_balanceValueLabel->setFixedWidth(30);
     
     // 添加左右标识
@@ -140,12 +142,32 @@ void MainWindow::setupUI()
     auto rightLabel = new QLabel("右");
     rightLabel->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
     
-    balanceLayout->addWidget(m_balanceLabel);
+    balanceLayout->addWidget(balanceLabel);
     balanceLayout->addWidget(leftLabel);
     balanceLayout->addWidget(m_balanceSlider);
     balanceLayout->addWidget(rightLabel);
     balanceLayout->addWidget(m_balanceValueLabel);
     balanceLayout->addStretch();
+
+    //速度控制组
+    auto tempoGroup = new QGroupBox("速度控制");
+    auto tempoLayout = new QHBoxLayout(tempoGroup);
+    
+    auto tempoLabel = new QLabel("速度:");
+    m_tempoSlider = new QSlider(Qt::Horizontal);
+    m_tempoSlider->setRange(50, MAX_TEMPO*100);
+    m_tempoSlider->setValue(100);
+    m_tempoSlider->setFixedWidth(150);
+    
+    m_tempoValueLabel = new QLabel("100");
+    m_tempoValueLabel->setFixedWidth(150);
+
+    tempoLayout->addWidget(tempoLabel);
+    tempoLayout->addWidget(m_tempoSlider);
+    tempoLayout->addWidget(m_tempoValueLabel);
+    tempoLayout->addStretch();
+
+
     
     // 信息显示组
     auto infoGroup = new QGroupBox("音频信息");
@@ -167,6 +189,7 @@ void MainWindow::setupUI()
     mainLayout->addWidget(progressGroup);
     mainLayout->addWidget(volumeGroup);
     mainLayout->addWidget(balanceGroup);
+    mainLayout->addWidget(tempoGroup);
     mainLayout->addWidget(infoGroup);
     mainLayout->addStretch();
     
@@ -177,10 +200,12 @@ void MainWindow::setupUI()
 
 void MainWindow::setupConnections()
 {
-    connect(m_openButton, &QPushButton::clicked, this, &MainWindow::openFile);
+    connect(m_openButton, &QPushButton::clicked, this, &MainWindow::onOpenFile);
     connect(m_playPauseButton, &QPushButton::clicked, this, &MainWindow::playPause);
     connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::stop);
-    connect(m_volumeSlider, &QSlider::valueChanged, this, &MainWindow::onVolumeChanged);
+    connect(m_volumeSlider, &QSlider::valueChanged, this,
+            &MainWindow::onVolumeChanged);
+    connect(m_tempoSlider, &QSlider::valueChanged, this, &MainWindow::onTempoChanged);
     
     // 进度条信号
     connect(m_progressSlider, &QSlider::sliderPressed, this, &MainWindow::onProgressSliderPressed);
@@ -191,7 +216,7 @@ void MainWindow::setupConnections()
     connect(m_balanceSlider, &QSlider::valueChanged, this, &MainWindow::onBalanceChanged);
 }
 
-void MainWindow::openFile()
+void MainWindow::onOpenFile()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
         "选择音频文件",
@@ -235,28 +260,21 @@ void MainWindow::stop()
 void MainWindow::onVolumeChanged(int volume)
 {
     if (m_player) {
-        //m_player->set_volume(volume / 100.0);
+        m_player->setVolume(volume / 100.0);
     }
 }
 
 void MainWindow::onBalanceChanged(int balance)
 {
-    if (m_player) {
-        // 将-100到100的范围转换为-1.0到1.0
-        qreal balanceValue = balance / 100.0;
-        //m_player->setBalance(balanceValue);
-        
-        // 更新显示标签
-        if (balance < -10) {
-            m_balanceValueLabel->setText("左");
-        } else if (balance > 10) {
-            m_balanceValueLabel->setText("右");
-        } else {
-            m_balanceValueLabel->setText("中");
-        }
-        
-        qDebug() << "声道平衡设置为:" << balanceValue;
-    }
+    qreal balanceValue = balance / 100.0;
+    m_player->setVolumeBalance(balanceValue);
+    m_balanceValueLabel->setText(QString::number(balance));
+}
+
+void MainWindow::onTempoChanged(int tempo)
+{
+    m_player->setTempo(tempo / 100.0);
+    m_tempoValueLabel->setText(QString::number(tempo / 100.0));
 }
 
 void MainWindow::onPlayerStateChanged()
@@ -297,7 +315,7 @@ void MainWindow::updateUI()
 {
     // 根据播放状态更新UI
     bool hasFile = !m_currentFile.isEmpty();
-    bool isPlaying = m_player && m_player->is_playing();
+    bool isPlaying = m_player && m_player->isPlaying();
     
     m_playPauseButton->setEnabled(hasFile);
     m_stopButton->setEnabled(hasFile);

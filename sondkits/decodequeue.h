@@ -9,8 +9,7 @@
 
 class DecodeQueue {
 public:
-  DecodeQueue(std::shared_ptr<DecoderInterface> decoder,
-              int max_buffer_size = 200);
+  DecodeQueue(std::shared_ptr<DecoderInterface> decoder, int max_frames_size = 350);
   ~DecodeQueue();
 
   void start();
@@ -18,11 +17,11 @@ public:
   void clear();
   void restart();
   FrameData pop();
-  int64_t read_data(uint8_t *data, int64_t size);
-  int64_t read_data_until(uint8_t *data, int64_t size);
-  int64_t bytes_available();
+  int64_t readData(uint8_t *data, int64_t size);
+  int64_t readDataUntil(uint8_t *data, int64_t size);
+  int64_t bytesAvailable();
   bool aborted();
-  bool read_ended();
+  bool canRead();
 
 private:
   void push(FrameDataList &&items);
@@ -35,8 +34,8 @@ private:
   void stop_loop();
 
 private:
-  FrameDataList m_datas;
-  const int64_t m_max_datas_size;
+  FrameDataList m_frames;
+  const int64_t m_max_frames_size;
   std::mutex m_mutex;
   std::condition_variable m_cv_read;
   std::condition_variable m_cv_decode;

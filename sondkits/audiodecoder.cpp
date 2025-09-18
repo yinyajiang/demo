@@ -67,7 +67,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   if (ret < 0) {
     throw std::runtime_error("Failed to open decoder for stream #" +
                              std::to_string(stream_index) + ": " +
-                             av_err2string(ret));
+                             avErr2String(ret));
   }
 
   m_in_astream_idx = stream_index;
@@ -79,26 +79,37 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
     m_frame = av_frame_alloc();
   }
 
-  init_swr();
+  //如果是完全满足要求的，则不需要重采样
+  if(m_target_channels <= 0 || m_target_sample_rate <= 0) {
+    m_swr_ctx = nullptr;
+    return;
+  }
+  if (m_dec_ctx->sample_rate == m_target_sample_rate &&
+      m_dec_ctx->ch_layout.nb_channels == m_target_channels &&
+      m_dec_ctx->sample_fmt == m_target_sample_format) {
+    m_swr_ctx = nullptr;
+    return;
+  }
+  initSwr();
 }
 
-AVFormatContext *AudioDecoder::format_context() const { return m_fmt_ctx; }
+AVFormatContext *AudioDecoder::fmtCtx() const { return m_fmt_ctx; }
 
-AVCodecContext *AudioDecoder::codec_context() const { return m_dec_ctx; }
+AVCodecContext *AudioDecoder::codecCtx() const { return m_dec_ctx; }
 
-int AudioDecoder::audio_stream_index() const { return m_in_astream_idx; }
+int AudioDecoder::audioStreamIndex() const { return m_in_astream_idx; }
 
 double AudioDecoder::duration() const {
   return double(m_fmt_ctx->duration) / AV_TIME_BASE;
 }
 
-bool AudioDecoder::is_end() const { return m_is_end; }
+bool AudioDecoder::isEnd() const { return m_is_end; }
 
-void AudioDecoder::free_data(uint8_t *data) {
-  if (!data) {
+void AudioDecoder::freeData(uint8_t **data) {
+  if (!data || !*data) {
     return;
   }
-  av_freep(&data);
+  av_freep(data);
 }
 
 void AudioDecoder::close() {
@@ -124,7 +135,7 @@ void AudioDecoder::close() {
   }
 }
 
-void AudioDecoder::init_swr() {
+void AudioDecoder::initSwr() {
   auto swr_ctx = swr_alloc();
   if (!swr_ctx) {
     throw std::runtime_error("Failed to allocate resampler context");
@@ -143,12 +154,12 @@ void AudioDecoder::init_swr() {
   if (ret < 0) {
     swr_free(&swr_ctx);
     throw std::runtime_error("Failed to initialize resampler: " +
-                             av_err2string(ret));
+                             avErr2String(ret));
   }
   m_swr_ctx = swr_ctx;
 }
 
-FrameDataList AudioDecoder::decode_next_frame_data() {
+FrameDataList AudioDecoder::decodeNextFrameData() {
   FrameDataList frame_data_list;
 
   while (true) {
@@ -159,11 +170,11 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
         // 刷新解码器，获取剩余帧
         if (avcodec_send_packet(m_dec_ctx, nullptr) >= 0) {
           while (avcodec_receive_frame(m_dec_ctx, m_frame) == 0) {
-            frame_data_list.push_back(std::move(resample_frame(m_frame)));
+            frame_data_list.push_back(std::move(resampleFrame(m_frame)));
           }
         }
       } else {
-        std::cerr << "Error reading packet: " << av_err2string(ret)
+        std::cerr << "Error reading packet: " << avErr2String(ret)
                   << std::endl;
       }
       break;
@@ -177,7 +188,7 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
     ret = avcodec_send_packet(m_dec_ctx, m_packet);
     if (ret < 0) {
       if (ret != AVERROR(EAGAIN)) {
-        std::cerr << "Error sending packet: " << av_err2string(ret)
+        std::cerr << "Error sending packet: " << avErr2String(ret)
                   << std::endl;
       }
       continue;
@@ -185,7 +196,7 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
 
     // 接收解码帧
     while ((ret = avcodec_receive_frame(m_dec_ctx, m_frame)) == 0) {
-      frame_data_list.push_back(std::move(resample_frame(m_frame)));
+      frame_data_list.push_back(std::move(resampleFrame(m_frame)));
     }
 
     if (frame_data_list.size() > 0) {
@@ -195,9 +206,17 @@ FrameDataList AudioDecoder::decode_next_frame_data() {
   return std::move(frame_data_list);
 }
 
-FrameData AudioDecoder::resample_frame(AVFrame *frame) {
+FrameData AudioDecoder::resampleFrame(AVFrame *frame) {
   if (!frame || frame->nb_samples <= 0) {
     return FrameData{nullptr, 0};
+  }
+  if (!m_swr_ctx) {
+    int size =
+        av_samples_get_buffer_size(nullptr, m_dec_ctx->ch_layout.nb_channels,
+                                   frame->nb_samples, m_dec_ctx->sample_fmt, 1);
+    auto pdata = av_malloc(size);
+    memcpy(pdata, frame->data[0], size);
+    return FrameData{(uint8_t *)pdata, size};
   }
 
   int out_samples = av_rescale_rnd(
@@ -215,7 +234,7 @@ FrameData AudioDecoder::resample_frame(AVFrame *frame) {
                                                m_target_channels, out_samples,
                                                m_target_sample_format, 0);
   if (ret < 0) {
-    std::cerr << "Error allocating audio buffer: " << av_err2string(ret)
+    std::cerr << "Error allocating audio buffer: " << avErr2String(ret)
               << std::endl;
     return FrameData{nullptr, 0};
   }
@@ -224,7 +243,7 @@ FrameData AudioDecoder::resample_frame(AVFrame *frame) {
       swr_convert(m_swr_ctx, audio_data, out_samples,
                   const_cast<const uint8_t **>(frame->data), frame->nb_samples);
   if (num <= 0) {
-    std::cerr << "Error converting frame: " << av_err2string(num) << std::endl;
+    std::cerr << "Error converting frame: " << avErr2String(num) << std::endl;
     if (audio_data) {
       av_freep(&audio_data[0]);
       av_freep(&audio_data);

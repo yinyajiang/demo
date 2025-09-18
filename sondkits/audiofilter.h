@@ -1,0 +1,63 @@
+#pragma once
+
+#include "common.h"
+#include <atomic>
+#include <limits>
+#include <memory>
+#include <functional>
+#include <mutex>
+
+namespace soundtouch {
+  class SoundTouch;
+}
+
+
+class AudioFilter {
+public:
+  AudioFilter(int sample_rate, int channels, AVSampleFormat format, float max_tempo = MAX_TEMPO);
+  ~AudioFilter();
+  //[0.0, 1.0]
+  void setVolume(float volume, int channel_num = -1);
+  float volume(int channel_num = -1);
+  //[-1.0, 1.0]
+  void setVolumeBalance(float balance);
+  void setTempo(float tempo);
+  void process(uint8_t *data, int64_t *size);
+private:
+  void applyVolume(uint8_t *data, int64_t *size);
+  void applyTempo(uint8_t *data, int64_t *size);
+
+  template <typename T>
+  void forEachChannelSample(uint8_t *data, int64_t size, std::function<void(T*,int)>&& func) {
+    const int samples = size / m_sample_size;
+    T *pcm = reinterpret_cast<T *>(data);
+    for (int i = 0; i < samples; ++i) {
+        func(pcm + i, i%m_channels);
+    }
+  }
+
+
+  void applyU8SampleVolume(uint8_t *data, float volume);
+  template <typename T, typename S>
+  void applySignedSampleVolume(T *data, float volume) {
+    S scaled = (S)((S)(*data) * volume);
+    if (scaled > std::numeric_limits<T>::max())
+        scaled = std::numeric_limits<T>::max();
+    else if (scaled < std::numeric_limits<T>::lowest())
+        scaled = std::numeric_limits<T>::lowest();
+    *data = static_cast<T>(scaled);
+  }
+private:
+  int m_sample_rate;
+  int m_channels;
+  float m_max_tempo;
+  AVSampleFormat m_format;
+  int m_sample_size;
+  std::atomic<float> m_volume;
+  std::atomic<float> m_channels_volumes[10];
+
+
+  SpinLock m_sound_touch_lock;
+  std::unique_ptr<soundtouch::SoundTouch> m_sound_touch;
+  float m_tempo;
+};

@@ -3,8 +3,8 @@
 #include <mutex>
 
 DecodeQueue::DecodeQueue(std::shared_ptr<DecoderInterface> decoder,
-                         int max_buffer_size)
-    : m_decoder(decoder), m_max_datas_size(max_buffer_size),
+                         int max_frames_size)
+    : m_decoder(decoder), m_max_frames_size(max_frames_size),
       m_decode_loop_stopped(false), m_abort(false), m_front_pos(0),
       m_datas_byte_size(0) {}
 
@@ -24,7 +24,7 @@ void DecodeQueue::restart() {
 
 void DecodeQueue::clear() {
   std::unique_lock<std::mutex> lock(m_mutex);
-  m_datas.clear();
+  m_frames.clear();
   m_front_pos.store(0);
   m_datas_byte_size.store(0);
 }
@@ -39,14 +39,14 @@ void DecodeQueue::stop() {
 
 bool DecodeQueue::aborted() { return m_abort.load(); }
 
-bool DecodeQueue::read_ended() {
+bool DecodeQueue::canRead() {
   return aborted() || (is_empty() && is_decode_stopped());
 }
 
-int64_t DecodeQueue::read_data_until(uint8_t *buffer, int64_t buffer_size) {
+int64_t DecodeQueue::readDataUntil(uint8_t *buffer, int64_t buffer_size) {
   int64_t readed = 0;
-  while (!read_ended()) {
-    readed += read_data(buffer + readed, buffer_size - readed);
+  while (!canRead()) {
+    readed += readData(buffer + readed, buffer_size - readed);
     if (readed >= buffer_size) {
       break;
     }
@@ -55,7 +55,7 @@ int64_t DecodeQueue::read_data_until(uint8_t *buffer, int64_t buffer_size) {
   return readed;
 }
 
-int64_t DecodeQueue::read_data(uint8_t *buffer, int64_t buffer_size) {
+int64_t DecodeQueue::readData(uint8_t *buffer, int64_t buffer_size) {
   std::unique_lock<std::mutex> lock(m_mutex);
   while (is_empty()) {
     if (aborted()) {
@@ -70,8 +70,8 @@ int64_t DecodeQueue::read_data(uint8_t *buffer, int64_t buffer_size) {
   bool first = true;
 
   int count = 0;
-  for (auto it = m_datas.begin();
-       it != m_datas.end() && readed < buffer_size;) {
+  for (auto it = m_frames.begin();
+       it != m_frames.end() && readed < buffer_size;) {
     auto &data = *it;
     int pos = 0;
     int size = data.size;
@@ -85,8 +85,8 @@ int64_t DecodeQueue::read_data(uint8_t *buffer, int64_t buffer_size) {
       memcpy(buffer + readed, data.data + pos, size);
       readed += size;
 
-      m_decoder->free_data(data.data);
-      it = m_datas.erase(it);
+      m_decoder->freeData(&data.data);
+      it = m_frames.erase(it);
       m_front_pos.store(0);
       m_datas_byte_size.fetch_sub(size);
     } else {
@@ -102,7 +102,7 @@ int64_t DecodeQueue::read_data(uint8_t *buffer, int64_t buffer_size) {
   return readed;
 }
 
-int64_t DecodeQueue::bytes_available() {
+int64_t DecodeQueue::bytesAvailable() {
   return m_datas_byte_size.load() - m_front_pos.load();
 }
 
@@ -116,8 +116,8 @@ FrameData DecodeQueue::pop() {
       return aborted() || !is_empty() || is_decode_stopped();
     });
   }
-  auto data = m_datas.front();
-  m_datas.pop_front();
+  auto data = m_frames.front();
+  m_frames.pop_front();
 
   m_front_pos.store(0);
   m_datas_byte_size.fetch_sub(data.size);
@@ -136,20 +136,20 @@ void DecodeQueue::push(FrameDataList &&items) {
   }
   for (auto &data : items) {
     m_datas_byte_size.fetch_add(data.size);
-    m_datas.push_back(std::move(data));
+    m_frames.push_back(std::move(data));
   }
   m_cv_read.notify_one();
 }
 
 void DecodeQueue::decode_loop() {
   while (!aborted()) {
-    auto data = m_decoder->decode_next_frame_data();
+    auto data = m_decoder->decodeNextFrameData();
     if (aborted()) {
       break;
     }
 
     if (data.empty()) {
-      if (m_decoder->is_end()) {
+      if (m_decoder->isEnd()) {
         break;
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(0));
@@ -166,8 +166,8 @@ void DecodeQueue::stop_loop() {
   m_cv_decode.notify_all();
 }
 
-bool DecodeQueue::is_empty() { return m_datas.empty(); }
+bool DecodeQueue::is_empty() { return m_frames.empty(); }
 
-bool DecodeQueue::is_full() { return m_datas.size() >= m_max_datas_size; }
+bool DecodeQueue::is_full() { return m_frames.size() >= m_max_frames_size; }
 
 bool DecodeQueue::is_decode_stopped() { return m_decode_loop_stopped.load(); }

@@ -3,25 +3,20 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libswresample/swresample.h>
 }
+#include <thread>
 
 
-std::string av_err2string(int errnum) {
+std::string avErr2String(int errnum) {
     char errbuf[AV_ERROR_MAX_STRING_SIZE] = {0};
     av_strerror(errnum, errbuf, AV_ERROR_MAX_STRING_SIZE);
     return std::string(errbuf);
 }
 
-void av_append_buffer(uint8_t **dst, int *dst_size, uint8_t *src, int src_size) {
-    if (!dst || !dst_size || !src || src_size <= 0) {
-        return;
+void  SpinLock::lock(){ 
+    while (flag.test_and_set(std::memory_order_acquire)) {
+        std::this_thread::yield();
     }
-    
-    uint8_t *new_ptr = (uint8_t*)av_realloc(*dst, *dst_size + src_size);
-    if (!new_ptr) {
-        // Memory allocation failed, keep original buffer unchanged
-        return;
-    }
-    *dst = new_ptr;
-    memcpy(*dst + *dst_size, src, src_size);
-    *dst_size += src_size;
-}
+}   
+void SpinLock::unlock(){ 
+    flag.clear(std::memory_order_release);
+}   

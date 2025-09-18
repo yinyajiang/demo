@@ -19,18 +19,18 @@ public:
 
   void open(const std::filesystem::path &in_fpath);
   void close();
-  FrameDataList decode_next_frame_data() override;
-  bool is_end() const override;
-  void free_data(uint8_t *data) override;
+  FrameDataList decodeNextFrameData() override;
+  bool isEnd() const override;
+  void freeData(uint8_t **data) override;
   void seek(int64_t time_ms);
-  AVFormatContext *format_context() const;
-  AVCodecContext *codec_context() const;
-  int audio_stream_index() const;
+  AVFormatContext *fmtCtx() const;
+  AVCodecContext *codecCtx() const;
+  int audioStreamIndex() const;
   double duration() const;
 
 private:
-  void init_swr();
-  FrameData resample_frame(AVFrame *frame);
+  void initSwr();
+  FrameData resampleFrame(AVFrame *frame);
 
 private:
   AVFormatContext *m_fmt_ctx;

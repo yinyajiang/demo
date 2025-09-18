@@ -25,11 +25,12 @@ public:
   ~MainWindow();
 
 private slots:
-  void openFile();
+  void onOpenFile();
   void playPause();
   void stop();
   void onVolumeChanged(int volume);
   void onBalanceChanged(int balance);
+  void onTempoChanged(int tempo);
   void onProgressSliderPressed();
   void onProgressSliderReleased();
   void onProgressSliderMoved(int value);
@@ -63,9 +64,12 @@ private:
   QSlider *m_volumeSlider;
 
   // 声道平衡控制组
-  QLabel *m_balanceLabel;
   QSlider *m_balanceSlider;
   QLabel *m_balanceValueLabel;
+
+  // 速度控制组
+  QSlider *m_tempoSlider;
+  QLabel *m_tempoValueLabel;
 
   // 信息显示组
   QLabel *m_audioInfoLabel;
