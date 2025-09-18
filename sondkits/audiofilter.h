@@ -66,6 +66,7 @@ private:
 
 
   SpinLock m_sound_touch_lock;
-  std::unique_ptr<soundtouch::SoundTouch> m_sound_touch;
+  std::unique_ptr<soundtouch::SoundTouch> m_soundtouch;
+  bool m_soundtouch_flushed;
   float m_tempo;
 };
