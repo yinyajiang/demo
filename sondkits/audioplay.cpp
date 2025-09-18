@@ -2,44 +2,40 @@
 #include <QDebug>
 #include <QFile>
 #include <QtGlobal>
-#include <memory>
 #include <fstream>
+#include <memory>
 
+PCMDataSourceDevice::PCMDataSourceDevice(
+    std::shared_ptr<DataSource> data_source, QObject *parent)
+    : QIODevice(parent), m_data_source(data_source) {
+  open(QIODevice::ReadOnly);
+}
 
-  PCMDataSourceDevice::PCMDataSourceDevice(std::shared_ptr<DataSource> data_source, QObject *parent)
-      : QIODevice(parent), m_data_source(data_source) {
-    open(QIODevice::ReadOnly);
-  }
-
-  qint64 PCMDataSourceDevice::readData(char *data, qint64 size) {
+qint64 PCMDataSourceDevice::readData(char *data, qint64 size) {
 #if PRINT_READ_CONSUME_TIME
-    //获取调用时间
-    auto start = std::chrono::high_resolution_clock::now();
-    auto ret = m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    qDebug() << "### readData duration: " << duration.count() << "us";
-    return ret;
+  // 获取调用时间
+  auto start = std::chrono::high_resolution_clock::now();
+  auto ret = m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  qDebug() << "### readData duration: " << duration.count() << "us";
+  return ret;
 #else
-    return m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
+  return m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
 #endif
-  }
-  bool PCMDataSourceDevice::atEnd() const {
-    return m_data_source->isEnd();  
-  }
-  qint64 PCMDataSourceDevice::bytesAvailable() const {
-    return m_data_source->bytesAvailable();
-  }
+}
+bool PCMDataSourceDevice::atEnd() const { return m_data_source->isEnd(); }
+qint64 PCMDataSourceDevice::bytesAvailable() const {
+  return m_data_source->bytesAvailable();
+}
 
-  qint64 PCMDataSourceDevice::writeData(const char *, qint64) { return -1; }
-
-
-
+qint64 PCMDataSourceDevice::writeData(const char *, qint64) { return -1; }
 
 AudioPlay::AudioPlay(QAudioFormat audio_format,
                      std::shared_ptr<DataSource> source, QObject *parent)
     : QObject(parent), m_audio_format(audio_format), m_volume(1.0),
-      m_balance(0.0){
+      m_balance(0.0) {
 
   auto audiodevice = QMediaDevices::defaultAudioOutput();
   if (!audiodevice.isFormatSupported(audio_format)) {
@@ -50,7 +46,8 @@ AudioPlay::AudioPlay(QAudioFormat audio_format,
   m_pcm_source = std::make_shared<PCMDataSourceDevice>(source, this);
 
   // 100ms buffer
-  auto sinkBuff = audio_format.bytesPerFrame() * audio_format.sampleRate() * 100 / 1000;
+  auto sinkBuff =
+      audio_format.bytesPerFrame() * audio_format.sampleRate() * 100 / 1000;
   m_audio_sink->setBufferSize(sinkBuff * MAX_TEMPO);
   m_audio_sink->setVolume(m_volume);
 }
@@ -104,7 +101,7 @@ void AudioPlay::saveAsPCMFile(const std::filesystem::path &file_path) {
     qWarning() << "Failed to open file: " << file_path.string();
     return;
   }
-  char buffer[1024*1024];
+  char buffer[1024 * 1024];
   while (!m_pcm_source->atEnd()) {
     auto data = m_pcm_source->readData(buffer, sizeof(buffer));
     file.write(buffer, data);
