@@ -16,6 +16,7 @@ public:
 
   void open(const std::filesystem::path &in_fpath);
   void play();
+  void pause();
   void stop();
   bool isPlaying();
   int64_t duration();

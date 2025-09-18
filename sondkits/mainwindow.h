@@ -40,9 +40,6 @@ private slots:
 
 private:
   void setupUI();
-  void setupConnections();
-  void updateUI();
-  void resetPlayer();
   QString formatTime(double seconds);
 
 private:

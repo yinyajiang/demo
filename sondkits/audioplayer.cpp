@@ -64,6 +64,12 @@ void AudioPlayer::play() {
   }
 }
 
+void AudioPlayer::pause() {
+  if (m_audio_play) {
+    m_audio_play->pause();
+  }
+}
+
 void AudioPlayer::stop() {
   if (m_audio_play) {
     m_audio_play->stop();
