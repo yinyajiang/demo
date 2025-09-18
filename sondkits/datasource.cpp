@@ -11,7 +11,13 @@ DataSource::DataSource(std::shared_ptr<AudioFilter> audio_filter)
 int64_t DataSource::readData(uint8_t *data, int64_t size) {
   auto r = realReadData(data, size);
   if (m_audio_filter) {
-    m_audio_filter->process(data, &r);
+    if (r == 0) {
+      auto remain_size = m_audio_filter->flushRemaining();
+      r = std::min(remain_size, size);
+      m_audio_filter->reciveRemaining(data, &r);
+    } else {
+      m_audio_filter->process(data, &r);
+    }
   }
   return r;
 }

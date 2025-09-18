@@ -103,6 +103,12 @@ double AudioDecoder::duration() const {
   return double(m_fmt_ctx->duration) / AV_TIME_BASE;
 }
 
+int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
+
+int AudioDecoder::targetChannels() const { return m_target_channels; }
+
+AVSampleFormat AudioDecoder::targetSampleFormat() const { return m_target_sample_format; }
+
 bool AudioDecoder::isEnd() const { return m_is_end; }
 
 void AudioDecoder::freeData(uint8_t **data) {

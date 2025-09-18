@@ -6,20 +6,17 @@ extern "C" {
 #include <cstdint>
 #include "SoundTouch.h"
 
-AudioFilter::AudioFilter(int sample_rate, int channels, AVSampleFormat format, float max_tempo)
-    : m_sample_rate(sample_rate), m_channels(channels), m_format(format), m_max_tempo(max_tempo) {
-  assert(!av_sample_fmt_is_planar(format));
-  m_sample_size = av_get_bytes_per_sample(format);
+AudioFilter::AudioFilter(AudioFilterConfig config)
+    : m_config(config) {
+  assert(!av_sample_fmt_is_planar(config.format));
+  m_sample_size = av_get_bytes_per_sample(config.format);
   m_volume.store(1.0f);
-  for (int i = 0; i < m_channels; i++) {
+  for (int i = 0; i < m_config.channels; i++) {
     m_channels_volumes[i].store(1.0f);
   }
-  
-  m_sound_touch = std::make_unique<soundtouch::SoundTouch>();
-  m_sound_touch->setSampleRate(sample_rate);
-  m_sound_touch->setChannels(channels);
-  m_sound_touch->setTempo(1.0f);
+
   m_tempo = 1.0f;
+  newSoundTouch();
 }
 
 AudioFilter::~AudioFilter() {}
@@ -43,18 +40,13 @@ void AudioFilter::setVolume(float volume, int channel_num) {
 
 void AudioFilter::setTempo(float tempo) {
   if (tempo <= 0.1f) return;
-  if (tempo > m_max_tempo)  tempo = m_max_tempo;
-  m_sound_touch_lock.lock();
-  m_sound_touch = std::make_unique<soundtouch::SoundTouch>();
-  m_sound_touch->setSampleRate(m_sample_rate);
-  m_sound_touch->setChannels(m_channels);
-  m_sound_touch->setTempo(tempo);
+  if (tempo > m_config.max_tempo)  tempo = m_config.max_tempo;
   m_tempo = tempo;
-  m_sound_touch_lock.unlock();
+  newSoundTouch();
 }
 
 void AudioFilter::setVolumeBalance(float balance) {
-  if(m_channels != 2 || balance > 1.0f || balance < -1.0f) {
+  if(m_config.channels != 2 || balance > 1.0f || balance < -1.0f) {
     return;
   }
   if (balance > 0.0f) { // 偏向右声道, 减小左声道音量
@@ -69,12 +61,33 @@ void AudioFilter::process(uint8_t *data, int64_t *size) {
   applyVolume(data, size);
 }
 
+int64_t AudioFilter::flushRemaining() {
+    int64_t num_samples = 0;
+    m_sound_touch_lock.lock() ;
+    if (m_sound_touch) {
+        m_sound_touch->flush();
+        num_samples = m_sound_touch->numSamples();
+    }
+    m_sound_touch_lock.unlock();
+    return num_samples * m_config.channels * m_sample_size;
+}
+
+void AudioFilter::reciveRemaining(uint8_t *data, int64_t *size) {
+  m_sound_touch_lock.lock();
+  if (m_sound_touch) {
+    auto num_samples = *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
+    auto num = m_sound_touch->receiveSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
+    *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
+  }
+  m_sound_touch_lock.unlock();
+}
+
 void AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
   if (!data || !size || *size <= 0) {
     return;
   }
   const int samples = *size / m_sample_size; // 交错采样，逐样本缩放即可
-  switch (m_format) {
+  switch (m_config.format) {
     case AV_SAMPLE_FMT_U8: {
         forEachChannelSample<uint8_t>(data, *size, [this](uint8_t *data, int channel_num) {
             applyU8SampleVolume(data, m_channels_volumes[channel_num].load()*m_volume.load());
@@ -118,20 +131,18 @@ void AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
 }
 
 void AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
-  if (!data || !size || *size <= 0 || m_format != AV_SAMPLE_FMT_FLT) {
+  if (!data || !size || *size <= 0 || m_config.format != AV_SAMPLE_FMT_FLT) {
     return;
   }
   m_sound_touch_lock.lock();
-  if (m_tempo != 1.0f) {
-    auto num_samples = *size / sizeof(soundtouch::SAMPLETYPE) / m_channels;
+  if (m_tempo != 1.0f && m_sound_touch) {
+    auto num_samples = *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
     m_sound_touch->putSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
     auto num = m_sound_touch->receiveSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
-    *size = num * sizeof(soundtouch::SAMPLETYPE) * m_channels;
+    *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
   }
   m_sound_touch_lock.unlock();
 }
-
-
 
 
 void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {
@@ -149,4 +160,16 @@ void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {
       out = 255;
     }
     *data = static_cast<uint8_t>(out);
+}
+
+void AudioFilter::newSoundTouch() {
+  m_sound_touch_lock.lock();
+  if (m_sound_touch) {
+    m_sound_touch->clear();
+  }
+  m_sound_touch = std::make_unique<soundtouch::SoundTouch>();
+  m_sound_touch->setSampleRate(m_config.sample_rate);
+  m_sound_touch->setChannels(m_config.channels);
+  m_sound_touch->setTempo(m_tempo);
+  m_sound_touch_lock.unlock();
 }

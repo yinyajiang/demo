@@ -11,6 +11,9 @@ class AudioPlayer : public QObject {
 public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
+
+  static float detectBPM(const std::filesystem::path &in_fpath);
+
   void open(const std::filesystem::path &in_fpath);
   void play();
   void stop();

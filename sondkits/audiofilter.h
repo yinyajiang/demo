@@ -9,12 +9,19 @@
 
 namespace soundtouch {
   class SoundTouch;
-}
+  }
+
+struct AudioFilterConfig {
+  int sample_rate;
+  int channels;
+  AVSampleFormat format;
+  float max_tempo;
+};
 
 
 class AudioFilter {
 public:
-  AudioFilter(int sample_rate, int channels, AVSampleFormat format, float max_tempo = MAX_TEMPO);
+  AudioFilter(AudioFilterConfig config);
   ~AudioFilter();
   //[0.0, 1.0]
   void setVolume(float volume, int channel_num = -1);
@@ -23,16 +30,20 @@ public:
   void setVolumeBalance(float balance);
   void setTempo(float tempo);
   void process(uint8_t *data, int64_t *size);
+
+  int64_t flushRemaining();
+  void reciveRemaining(uint8_t *data, int64_t *size);
 private:
   void applyVolume(uint8_t *data, int64_t *size);
   void applyTempo(uint8_t *data, int64_t *size);
+  void newSoundTouch();
 
   template <typename T>
   void forEachChannelSample(uint8_t *data, int64_t size, std::function<void(T*,int)>&& func) {
     const int samples = size / m_sample_size;
     T *pcm = reinterpret_cast<T *>(data);
     for (int i = 0; i < samples; ++i) {
-        func(pcm + i, i%m_channels);
+        func(pcm + i, i%m_config.channels);
     }
   }
 
@@ -48,10 +59,7 @@ private:
     *data = static_cast<T>(scaled);
   }
 private:
-  int m_sample_rate;
-  int m_channels;
-  float m_max_tempo;
-  AVSampleFormat m_format;
+  AudioFilterConfig m_config;
   int m_sample_size;
   std::atomic<float> m_volume;
   std::atomic<float> m_channels_volumes[10];

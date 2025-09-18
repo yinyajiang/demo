@@ -12,10 +12,32 @@ AudioPlayer::AudioPlayer(QObject *parent)
 AudioPlayer::~AudioPlayer() {}
 
 void AudioPlayer::open(const std::filesystem::path &in_fpath) {
+  // decoder
+  auto audio_decoder = std::make_shared<AudioDecoder>(
+      DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS, DEFAULT_SAMPLE_AV_FORMAT);
+  audio_decoder->open(in_fpath);
+
+  // filter
+  AudioFilterConfig filter_config;
+  filter_config.sample_rate = audio_decoder->targetSampleRate();
+  filter_config.channels = audio_decoder->targetChannels();
+  filter_config.format = audio_decoder->targetSampleFormat();
+  filter_config.max_tempo = MAX_TEMPO;
+  m_audio_filter = std::make_shared<AudioFilter>(filter_config);
+
+  // decode queue
+  auto decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
+
+  // data source
+  auto data_source =
+      std::make_shared<DecodeDataSource>(m_audio_filter, decode_queue);
+  data_source->open();
+
+  // audio play
   QAudioFormat audio_format;
-  audio_format.setSampleRate(DEFAULT_SAMPLE_RATE);
-  audio_format.setChannelCount(DEFAULT_CHANNELS);
-  switch (DEFAULT_SAMPLE_AV_FORMAT) {
+  audio_format.setSampleRate(audio_decoder->targetSampleRate());
+  audio_format.setChannelCount(audio_decoder->targetChannels());
+  switch (audio_decoder->targetSampleFormat()) {
   case AV_SAMPLE_FMT_U8:
     audio_format.setSampleFormat(QAudioFormat::UInt8);
     break;
@@ -31,19 +53,8 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   default:
     assert(false);
   }
-  auto audio_decoder = std::make_shared<AudioDecoder>(
-      DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS, DEFAULT_SAMPLE_AV_FORMAT);
-  audio_decoder->open(in_fpath);
-
-  m_audio_filter = std::make_shared<AudioFilter>(DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS, DEFAULT_SAMPLE_AV_FORMAT);
-  auto decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
-  auto data_source = std::make_shared<DecodeDataSource>(m_audio_filter, decode_queue);
-
-  data_source->open();
   m_audio_play = std::make_unique<AudioPlay>(audio_format, data_source, this);
 
-  auto bpm = detectAudioBPM(in_fpath);
-  std::cout << "### BPM: " << bpm << std::endl;
 }
 
 void AudioPlayer::play() {
@@ -74,6 +85,8 @@ void AudioPlayer::setVolumeBalance(float balance) {
   m_audio_filter->setVolumeBalance(balance);
 }
 
-void AudioPlayer::setTempo(float tempo) {
-  m_audio_filter->setTempo(tempo);
+void AudioPlayer::setTempo(float tempo) { m_audio_filter->setTempo(tempo); }
+
+float AudioPlayer::detectBPM(const std::filesystem::path &in_fpath) {
+  return detectAudioBPM(in_fpath);
 }

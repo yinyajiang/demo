@@ -27,6 +27,9 @@ public:
   AVCodecContext *codecCtx() const;
   int audioStreamIndex() const;
   double duration() const;
+  int targetSampleRate() const;
+  int targetChannels() const;
+  AVSampleFormat targetSampleFormat() const;
 
 private:
   void initSwr();
