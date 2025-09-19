@@ -101,13 +101,14 @@ int AudioPlayer::detectBPM() {
   if (!m_audio_decoder) {
     return 0;
    }
+   int channels = m_audio_decoder->channels();
     auto audio_decoder = std::make_shared<AudioDecoder>(
-        m_audio_decoder->sampleRate(), m_audio_decoder->channels(), AV_SAMPLE_FMT_FLT);
+        m_audio_decoder->sampleRate(), channels, AV_SAMPLE_FMT_FLT);
     audio_decoder->open(m_in_fpath);
-    soundtouch::BPMDetect bpm(1, m_audio_decoder->sampleRate());
+    soundtouch::BPMDetect bpm(channels, m_audio_decoder->sampleRate());
   
     foreachDecoderData(audio_decoder, [&](uint8_t *data, int size) {
-      auto num_samples = size / sizeof(soundtouch::SAMPLETYPE) / m_audio_decoder->channels();
+      auto num_samples = size / sizeof(soundtouch::SAMPLETYPE) / channels;
       bpm.inputSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data),
                        num_samples);
       return !m_stoped.load();
