@@ -37,6 +37,7 @@ private slots:
   void onPlayerStateChanged();
   void onDecoderError(const QString &message);
   void updatePlayback();
+  void onSemitoneChanged(int semitone);
 
 private:
   void setupUI();
@@ -67,6 +68,10 @@ private:
   // 速度控制组
   QSlider *m_tempoSlider;
   QLabel *m_tempoValueLabel;
+
+  // 升降调控制组
+  QSlider *m_semitoneSlider;
+  QLabel *m_semitoneValueLabel;
 
   // 信息显示组
   QLabel *m_audioInfoLabel;

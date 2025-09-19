@@ -36,6 +36,7 @@ public:
   void setVolume(float volume);
   void setVolumeBalance(float balance);
   void setTempo(float tempo);
+  void setSemitone(int semitone);
 signals:
   void signal_update_time(int64_t time_seconds);
   void signal_play_finished();

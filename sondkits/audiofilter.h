@@ -35,6 +35,9 @@ public:
   //[-1.0, 1.0]
   void setVolumeBalance(float balance);
   void setTempo(float tempo);
+  //[-12, 12]
+  void setSemitone(int semitone);
+
   AudioProcessResult process(uint8_t *data, int64_t *size);
 
   int64_t flushRemaining();
@@ -42,7 +45,7 @@ public:
 
 private:
   AudioProcessResult applyVolume(uint8_t *data, int64_t *size);
-  AudioProcessResult applyTempo(uint8_t *data, int64_t *size);
+  AudioProcessResult applyTempoAndSemitone(uint8_t *data, int64_t *size);
   void newSoundTouch();
 
   template <typename T>
@@ -76,4 +79,5 @@ private:
   std::unique_ptr<soundtouch::SoundTouch> m_soundtouch;
   bool m_soundtouch_flushed;
   float m_tempo;
+  int m_semitone;
 };

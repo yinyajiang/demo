@@ -101,6 +101,8 @@ void AudioPlayer::setVolumeBalance(float balance) {
 
 void AudioPlayer::setTempo(float tempo) { m_audio_filter->setTempo(tempo); }
 
+void AudioPlayer::setSemitone(int semitone) { m_audio_filter->setSemitone(semitone); }
+
 float AudioPlayer::detectBPMUseSoundtouch() {
   if (!m_audio_decoder) {
     return 0;

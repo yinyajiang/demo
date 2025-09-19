@@ -179,6 +179,24 @@ void MainWindow::setupUI() {
   connect(m_tempoSlider, &QSlider::valueChanged, this,
           &MainWindow::onTempoChanged);
 
+
+  // 升降调控制组
+  auto semitoneGroup = new QGroupBox("升降调");
+  auto semitoneLayout = new QHBoxLayout(semitoneGroup);
+  auto semitoneLabel = new QLabel("升降调:");
+  m_semitoneSlider = new QSlider(Qt::Horizontal);
+  m_semitoneSlider->setRange(-12, 12);
+  m_semitoneSlider->setValue(0);
+  m_semitoneSlider->setFixedWidth(150);
+  m_semitoneValueLabel = new QLabel("0");
+  m_semitoneValueLabel->setFixedWidth(150);
+  semitoneLayout->addWidget(semitoneLabel);
+  semitoneLayout->addWidget(m_semitoneSlider);
+  semitoneLayout->addWidget(m_semitoneValueLabel);
+  semitoneLayout->addStretch();
+  connect(m_semitoneSlider, &QSlider::valueChanged, this,
+          &MainWindow::onSemitoneChanged);
+
   // 信息显示组
   auto infoGroup = new QGroupBox("音频信息");
   auto infoLayout = new QVBoxLayout(infoGroup);
@@ -200,6 +218,7 @@ void MainWindow::setupUI() {
   mainLayout->addWidget(volumeGroup);
   mainLayout->addWidget(balanceGroup);
   mainLayout->addWidget(tempoGroup);
+  mainLayout->addWidget(semitoneGroup);
   mainLayout->addWidget(infoGroup);
   mainLayout->addStretch();
 
@@ -326,4 +345,9 @@ void MainWindow::onProgressSliderMoved(int value) {
     double position = (double)value / 1000.0 * m_totalDuration;
     m_currentTimeLabel->setText(formatTime(position));
   }
+}
+
+void MainWindow::onSemitoneChanged(int semitone) {
+  m_player->setSemitone(semitone);
+  m_semitoneValueLabel->setText(QString::number(semitone));
 }
