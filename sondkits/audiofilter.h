@@ -23,7 +23,7 @@ enum AudioProcessResult {
   AUDIO_PROCESS_RESULT_SUCCESS,
   AUDIO_PROCESS_RESULT_AGAIN,
   AUDIO_PROCESS_RESULT_ERROR,
-}
+};
 
 class AudioFilter {
 public:
