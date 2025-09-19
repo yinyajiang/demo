@@ -107,7 +107,19 @@ int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
 
 int AudioDecoder::targetChannels() const { return m_target_channels; }
 
-AVSampleFormat AudioDecoder::targetSampleFormat() const { return m_target_sample_format; }
+
+AVSampleFormat AudioDecoder::targetSampleFormat() const {
+  return m_target_sample_format;
+}
+
+int AudioDecoder::sampleRate() const { return m_dec_ctx->sample_rate; }
+
+int AudioDecoder::channels() const { return m_dec_ctx->ch_layout.nb_channels; }
+
+AVSampleFormat AudioDecoder::sampleFormat() const {
+  return m_dec_ctx->sample_fmt;
+}
+
 
 bool AudioDecoder::isEnd() const { return m_is_end; }
 

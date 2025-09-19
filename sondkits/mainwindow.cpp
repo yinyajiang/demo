@@ -220,6 +220,15 @@ void MainWindow::onOpenFile() {
   m_player->stop();
   m_player->open(fileName.toStdString());
   m_playPauseButton->setEnabled(true);
+
+  auto info = m_player->fetchAudioInfo();
+  m_audioInfoLabel->setText(QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5, 时长: %6")
+                            .arg(info.bpm)
+                            .arg(info.key)
+                            .arg(info.channels)
+                            .arg(info.sample_rate)
+                            .arg(info.sample_format)
+                            .arg(formatTime(info.duration_seconds)));
 }
 
 void MainWindow::playPause() {

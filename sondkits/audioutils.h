@@ -8,11 +8,9 @@ extern "C" {
 }
 
 class AudioDecoder;
-
 void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
-                        std::function<bool(uint8_t *, int)> sink,
-                        bool auto_free = true);
-float detectAudioBPM(const std::filesystem::path &in_fpath);
+                        std::function<bool(uint8_t *, int)> sink);
+
 
 enum ChromaticKey {
   // 大调调性 (0-11)

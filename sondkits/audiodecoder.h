@@ -30,6 +30,9 @@ public:
   int targetSampleRate() const;
   int targetChannels() const;
   AVSampleFormat targetSampleFormat() const;
+  int sampleRate() const;
+  int channels() const;
+  AVSampleFormat sampleFormat() const;
 
 private:
   void initSwr();

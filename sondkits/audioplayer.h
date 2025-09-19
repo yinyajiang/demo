@@ -4,16 +4,27 @@
 #include <filesystem>
 #include <memory>
 
+
+struct AudioInfo {
+  int bpm;
+  int key;
+  int channels;
+  int sample_rate;
+  int duration_seconds;
+  std::string sample_format;
+};
+
+
 class AudioPlay;
 class AudioFilter;
+class AudioDecoder;
 class AudioPlayer : public QObject {
   Q_OBJECT
 public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  static float detectBPM(const std::filesystem::path &in_fpath);
-
+  AudioInfo fetchAudioInfo();
   void open(const std::filesystem::path &in_fpath);
   void play();
   void pause();
@@ -29,6 +40,11 @@ signals:
   void signal_play_finished();
 
 private:
+  int detectBPM();
+private:
   std::unique_ptr<AudioPlay> m_audio_play;
   std::shared_ptr<AudioFilter> m_audio_filter;
+  std::shared_ptr<AudioDecoder> m_audio_decoder;
+  std::filesystem::path m_in_fpath;
+  std::atomic<bool> m_stoped;
 };

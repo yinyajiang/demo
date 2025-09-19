@@ -43,6 +43,8 @@ bool DecodeDataSource::isEnd() const { return m_decode_queue->canRead(); }
 
 void DecodeDataSource::open() { m_decode_queue->start(); }
 
+void DecodeDataSource::close() { m_decode_queue->stop(); }
+
 int64_t DecodeDataSource::bytesAvailable() const {
   return m_decode_queue->bytesAvailable();
 }
@@ -64,6 +66,8 @@ int64_t FileDataSource::bytesAvailable() const {
 }
 
 void FileDataSource::open() { m_file.open(QIODevice::ReadOnly); }
+
+void FileDataSource::close() { m_file.close(); }
 
 /******* ******************************************************/
 
@@ -90,3 +94,26 @@ bool MemoryDataSource::isEnd() const { return m_pos >= m_size; }
 int64_t MemoryDataSource::bytesAvailable() const { return m_size - m_pos; }
 
 void MemoryDataSource::open() { m_pos = 0; }
+
+void MemoryDataSource::close() { m_pos = 0; }
+
+
+CustomDataSource::CustomDataSource(std::shared_ptr<AudioFilter> audio_filter,
+                                   int64_t frame_size,
+                                   std::function<int64_t(uint8_t *data, int64_t size)> read_data_func,
+                                   std::function<bool()> is_end_func,
+                                   std::function<int64_t()> bytes_available_func)
+    : DataSource(audio_filter, frame_size), m_read_data_func(read_data_func), m_is_end_func(is_end_func), m_bytes_available_func(bytes_available_func) {}
+
+int64_t CustomDataSource::realReadData(uint8_t *data, int64_t maxlen) {
+  return m_read_data_func(data, maxlen);
+}
+
+bool CustomDataSource::isEnd() const { return m_is_end_func(); }
+
+int64_t CustomDataSource::bytesAvailable() const {
+  if (m_bytes_available_func) {
+    return m_bytes_available_func();
+  }
+  return 0;
+}

@@ -4,40 +4,37 @@
 #include "common.h"
 #include <filesystem>
 #include <functional>
+#include "datasource.h"
+#include "decodequeue.h"
+extern "C" {
+#include <libavutil/avutil.h>
+}
 
 void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
-                        std::function<bool(uint8_t *, int)> sink,
-                        bool auto_free) {
+                        std::function<bool(uint8_t *, int)> sink) {
   if (!audio_decoder || !sink) {
     return;
   }
-  while (!audio_decoder->isEnd()) {
-    auto frame_data = audio_decoder->decodeNextFrameData();
-    for (auto &frame : frame_data) {
-      auto con = sink(frame.data, frame.size);
-      if (auto_free) {
-        audio_decoder->freeData(&frame.data);
-      }
+
+  int64_t frame_size = audio_decoder->targetChannels() * av_get_bytes_per_sample(audio_decoder->targetSampleFormat());
+
+  std::shared_ptr<DecodeQueue> decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
+  DecodeDataSource source(nullptr, frame_size, decode_queue);
+  source.open();
+
+  const int frame_count = 1024;
+  const int buffer_size = frame_size*frame_count;
+  uint8_t *buffer = (uint8_t *)av_mallocz(buffer_size);
+  while (!source.isEnd()) {
+    auto frame_data = source.readData(buffer, buffer_size);
+    auto con = sink(buffer, frame_data);
+    if (!con) {
+      break;
     }
   }
+  source.close();
 }
 
-float detectAudioBPM(const std::filesystem::path &in_fpath) {
-  const int channels = 1;
-  auto audio_decoder = std::make_shared<AudioDecoder>(
-      DEFAULT_SAMPLE_RATE, channels, AV_SAMPLE_FMT_FLT);
-  audio_decoder->open(in_fpath);
-  soundtouch::BPMDetect bpm(1, DEFAULT_SAMPLE_RATE);
-
-  foreachDecoderData(audio_decoder, [&bpm](uint8_t *data, int size) {
-    auto num_samples = size / sizeof(soundtouch::SAMPLETYPE) / channels;
-    bpm.inputSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data),
-                     num_samples);
-    return true;
-  });
-  audio_decoder->close();
-  return bpm.getBpm();
-}
 
 int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
   // 将调性转换为对应的根音半音值
