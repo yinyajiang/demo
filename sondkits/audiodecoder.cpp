@@ -22,19 +22,20 @@ AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
 AudioDecoder::~AudioDecoder() { close(); }
 
 void AudioDecoder::open(const std::filesystem::path &in_fpath) {
-  if (avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr,
-                          nullptr) < 0) {
-    throw std::runtime_error("Could not open input file");
+  int ret = 0;
+  if ((ret = avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr,
+                          nullptr)) < 0) {
+    throw std::runtime_error("[avformat_open_input]Could not open input file:" + avErr2String(ret));
   }
 
-  if (avformat_find_stream_info(m_fmt_ctx, nullptr) < 0) {
-    throw std::runtime_error("Failed to retrieve input stream information");
+  if ((ret = avformat_find_stream_info(m_fmt_ctx, nullptr)) < 0) {
+    throw std::runtime_error("[avformat_find_stream_info]Failed to retrieve input stream information");
   }
 
   int stream_index =
       av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
   if (stream_index < 0) {
-    throw std::runtime_error("Could not find audio stream in the input file");
+    throw std::runtime_error("[av_find_best_stream]Could not find audio stream in the input file");
   }
 
   AVStream *audio_stream = m_fmt_ctx->streams[stream_index];
@@ -63,9 +64,9 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   m_dec_ctx->pkt_timebase = audio_stream->time_base;
 
   // Open the decoder
-  int ret = avcodec_open2(m_dec_ctx, decoder, nullptr);
+  ret = avcodec_open2(m_dec_ctx, decoder, nullptr);
   if (ret < 0) {
-    throw std::runtime_error("Failed to open decoder for stream #" +
+    throw std::runtime_error("[avcodec_open2]Failed to open decoder for stream #" +
                              std::to_string(stream_index) + ": " +
                              avErr2String(ret));
   }

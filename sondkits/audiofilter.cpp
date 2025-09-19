@@ -5,6 +5,7 @@ extern "C" {
 #include "SoundTouch.h"
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 
 AudioFilter::AudioFilter(AudioFilterConfig config) : m_config(config) {
   assert(!av_sample_fmt_is_planar(config.format));
@@ -154,6 +155,7 @@ void AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
     return;
   }
   m_sound_touch_lock.lock();
+  std::cout << "### applyTempo lock " << std::endl;
   if (m_tempo != 1.0f && m_soundtouch) {
     auto num_samples =
         *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
@@ -161,9 +163,15 @@ void AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
                              num_samples);
     auto num = m_soundtouch->receiveSamples(
         reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
-    *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
+    if (num == 0) {
+       *size = -1;
+    }else{
+       *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
+    }
+    std::cout << "### applyTempo num: " << num << std::endl;
   }
   m_sound_touch_lock.unlock();
+  std::cout << "### applyTempo unlock " << std::endl;
 }
 
 void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {

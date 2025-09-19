@@ -13,17 +13,26 @@ int64_t DataSource::readData(uint8_t *data, int64_t size) {
   if (size % m_frame_size != 0) {
     size = size / m_frame_size * m_frame_size;
   }
-
-  auto r = realReadData(data, size);
-  if (m_audio_filter) {
-    if (r == 0) {
-      auto remain_size = m_audio_filter->flushRemaining();
-      r = std::min(remain_size, size);
-      m_audio_filter->reciveRemaining(data, &r);
-    } else {
-      m_audio_filter->process(data, &r);
+  
+  int64_t r = 0;
+  while(1){
+    r = realReadData(data, size);
+    if (m_audio_filter) {
+      if (r == 0) {
+        auto remain_size = m_audio_filter->flushRemaining();
+        r = std::min(remain_size, size);
+        m_audio_filter->reciveRemaining(data, &r);
+      } else {
+        m_audio_filter->process(data, &r);
+        //缓存了
+        if (r == -1) {
+          continue;
+        }
+      }
     }
+    break;
   }
+
   return r;
 }
 

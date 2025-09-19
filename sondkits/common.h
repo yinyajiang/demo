@@ -13,7 +13,7 @@ extern "C" {
 // ffplay -f s32le -ar 44100 -ch_layout stereo decode.pcm
 // ffplay -f f32le -ar 44100 -ch_layout stereo decode.pcm
 
-#define PRINT_READ_CONSUME_TIME 1
+#define PRINT_READ_CONSUME_TIME 0
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNELS 2
 #define DEFAULT_SAMPLE_AV_FORMAT AV_SAMPLE_FMT_FLT
