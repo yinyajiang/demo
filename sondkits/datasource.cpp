@@ -23,10 +23,12 @@ int64_t DataSource::readData(uint8_t *data, int64_t size) {
         r = std::min(remain_size, size);
         m_audio_filter->reciveRemaining(data, &r);
       } else {
-        m_audio_filter->process(data, &r);
-        //缓存了
-        if (r == -1) {
+        auto result = m_audio_filter->process(data, &r);
+        if (result == AUDIO_PROCESS_RESULT_AGAIN) {
           continue;
+        }
+        if (result != AUDIO_PROCESS_RESULT_SUCCESS) {
+          return -1;
         }
       }
     }

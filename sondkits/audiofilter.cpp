@@ -60,9 +60,12 @@ void AudioFilter::setVolumeBalance(float balance) {
   }
 }
 
-void AudioFilter::process(uint8_t *data, int64_t *size) {
-  applyTempo(data, size);
-  applyVolume(data, size);
+AudioProcessResult AudioFilter::process(uint8_t *data, int64_t *size) {
+  auto r = applyTempo(data, size);
+  if (r != AUDIO_PROCESS_RESULT_SUCCESS) {
+    return r;
+  }
+  return applyVolume(data, size);
 }
 
 int64_t AudioFilter::flushRemaining() {
@@ -91,9 +94,9 @@ void AudioFilter::reciveRemaining(uint8_t *data, int64_t *size) {
   m_sound_touch_lock.unlock();
 }
 
-void AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
+AudioProcessResult AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
   if (!data || !size || *size <= 0) {
-    return;
+    return AUDIO_PROCESS_RESULT_SUCCESS;
   }
   const int samples = *size / m_sample_size; // 交错采样，逐样本缩放即可
   switch (m_config.format) {
@@ -148,14 +151,18 @@ void AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
   default:
     break;
   }
+  return AUDIO_PROCESS_RESULT_SUCCESS;
 }
 
-void AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
-  if (!data || !size || *size <= 0 || m_config.format != AV_SAMPLE_FMT_FLT) {
-    return;
+AudioProcessResult AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
+  if (!data || !size || *size <= 0) {
+    return AUDIO_PROCESS_RESULT_SUCCESS;
+  }
+  if (m_config.format != AV_SAMPLE_FMT_FLT) {
+    return AUDIO_PROCESS_RESULT_ERROR;
   }
   m_sound_touch_lock.lock();
-  std::cout << "### applyTempo lock " << std::endl;
+  AudioProcessResult result = AUDIO_PROCESS_RESULT_SUCCESS;
   if (m_tempo != 1.0f && m_soundtouch) {
     auto num_samples =
         *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
@@ -164,14 +171,12 @@ void AudioFilter::applyTempo(uint8_t *data, int64_t *size) {
     auto num = m_soundtouch->receiveSamples(
         reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
     if (num == 0) {
-       *size = -1;
-    }else{
-       *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
+        result = AUDIO_PROCESS_RESULT_AGAIN;
     }
-    std::cout << "### applyTempo num: " << num << std::endl;
+    *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
   }
   m_sound_touch_lock.unlock();
-  std::cout << "### applyTempo unlock " << std::endl;
+  return result;
 }
 
 void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {

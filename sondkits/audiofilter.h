@@ -19,6 +19,12 @@ struct AudioFilterConfig {
   float min_tempo;
 };
 
+enum AudioProcessResult {
+  AUDIO_PROCESS_RESULT_SUCCESS,
+  AUDIO_PROCESS_RESULT_AGAIN,
+  AUDIO_PROCESS_RESULT_ERROR,
+}
+
 class AudioFilter {
 public:
   AudioFilter(AudioFilterConfig config);
@@ -29,14 +35,14 @@ public:
   //[-1.0, 1.0]
   void setVolumeBalance(float balance);
   void setTempo(float tempo);
-  void process(uint8_t *data, int64_t *size);
+  AudioProcessResult process(uint8_t *data, int64_t *size);
 
   int64_t flushRemaining();
   void reciveRemaining(uint8_t *data, int64_t *size);
 
 private:
-  void applyVolume(uint8_t *data, int64_t *size);
-  void applyTempo(uint8_t *data, int64_t *size);
+  AudioProcessResult applyVolume(uint8_t *data, int64_t *size);
+  AudioProcessResult applyTempo(uint8_t *data, int64_t *size);
   void newSoundTouch();
 
   template <typename T>
