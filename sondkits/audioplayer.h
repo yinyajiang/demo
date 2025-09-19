@@ -6,12 +6,13 @@
 
 
 struct AudioInfo {
-  int bpm;
+  float bpm;
   int key;
   int channels;
   int sample_rate;
   int duration_seconds;
   std::string sample_format;
+  int consume_time_ms;
 };
 
 
@@ -40,7 +41,8 @@ signals:
   void signal_play_finished();
 
 private:
-  int detectBPM();
+  float detectBPMUseSoundtouch();
+  float detectBPMUseAubio();
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
   std::shared_ptr<AudioFilter> m_audio_filter;

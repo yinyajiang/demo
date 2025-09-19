@@ -8,10 +8,14 @@
 #include "decodequeue.h"
 extern "C" {
 #include <libavutil/avutil.h>
+#include "aubio.h"
 }
 
 void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
-                        std::function<bool(uint8_t *, int)> sink) {
+                        std::function<bool(uint8_t *, int64_t)> sink,
+                        int64_t min_sink_size,
+                        int64_t max_sink_size
+                        ) {
   if (!audio_decoder || !sink) {
     return;
   }
@@ -22,18 +26,40 @@ void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
   DecodeDataSource source(nullptr, frame_size, decode_queue);
   source.open();
 
-  const int frame_count = 1024;
-  const int buffer_size = frame_size*frame_count;
+  if (min_sink_size <= 0) {
+    min_sink_size = frame_size;
+  }
+  if (max_sink_size <= 0) {
+    max_sink_size = frame_size * 1024;
+  }
+
+  int64_t frame_count = max_sink_size / frame_size;
+  if (frame_count <= 0) {
+    return;
+  }
+  int64_t buffer_size = frame_size * frame_count;
+  buffer_size = std::min(buffer_size, max_sink_size);
+
   uint8_t *buffer = (uint8_t *)av_mallocz(buffer_size);
   while (!source.isEnd()) {
-    auto frame_data = source.readData(buffer, buffer_size);
-    auto con = sink(buffer, frame_data);
-    if (!con) {
-      break;
+    int readed = 0;
+    while (!source.isEnd() && readed < min_sink_size) {
+      int r = source.readData(buffer+readed, buffer_size-readed);
+      if (r > 0) {
+        readed += r;
+      }
+    }
+    if (readed>0) {
+        auto con = sink(buffer, readed);
+        if (!con) {
+        break;
+        }
     }
   }
+  av_freep(&buffer);
   source.close();
 }
+
 
 
 int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
@@ -64,3 +90,4 @@ int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
     semitoneDifference += 12;
   return semitoneDifference;
 }
+

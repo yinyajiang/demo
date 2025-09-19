@@ -12,18 +12,17 @@ PCMDataSourceDevice::PCMDataSourceDevice(
 }
 
 qint64 PCMDataSourceDevice::readData(char *data, qint64 size) {
-#if PRINT_READ_CONSUME_TIME
-  // 获取调用时间
+#if PRINT_CONSUME_TIME
   auto start = std::chrono::high_resolution_clock::now();
+#endif
   auto ret = m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
+#if PRINT_CONSUME_TIME
   auto end = std::chrono::high_resolution_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   qDebug() << "### readData duration: " << duration.count() << "us";
-  return ret;
-#else
-  return m_data_source->readData(reinterpret_cast<uint8_t *>(data), size);
 #endif
+  return ret;
 }
 bool PCMDataSourceDevice::atEnd() const { return m_data_source->isEnd(); }
 qint64 PCMDataSourceDevice::bytesAvailable() const {

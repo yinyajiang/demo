@@ -78,3 +78,7 @@ endif()
 add_subdirectory(3rd/soundtouch)
 target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/soundtouch/include")
 target_link_libraries(sondkits PRIVATE SoundTouch)
+
+# 3rd/aubio
+target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/aubio/src")
+target_link_libraries(sondkits PRIVATE "${PROJECT_SOURCE_DIR}/3rd/aubio/lib/libaubio.dylib")
