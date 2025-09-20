@@ -139,8 +139,8 @@ float AudioPlayer::detectBPMUseAubio() {
       m_audio_decoder->sampleRate(), channels, AV_SAMPLE_FMT_FLT);
   new_audio_decoder->open(m_in_fpath);
 
-  int hop_size = 128;
-  int buf_size = 1024;
+  int hop_size = 96;
+  int buf_size = 512;
   auto tempo = new_aubio_tempo("default", buf_size, hop_size,
                                new_audio_decoder->targetSampleRate());
 
