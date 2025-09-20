@@ -45,7 +45,7 @@ private:
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
-  std::shared_ptr<AudioEffectsFilter> m_audio_filter;
+  std::shared_ptr<AudioEffectsFilter> m_effects_filter;
   std::shared_ptr<AudioDecoder> m_audio_decoder;
   std::filesystem::path m_in_fpath;
   std::atomic<bool> m_stoped;

@@ -12,6 +12,14 @@ enum FilterProcessResult {
   AUDIO_PROCESS_RESULT_ERROR,
 };
 
+class AudioFilter {
+public:
+  virtual ~AudioFilter() = default;
+  virtual FilterProcessResult process(uint8_t *data, int64_t *size) = 0;
+  virtual int64_t flushRemaining() = 0;
+  virtual void reciveRemaining(uint8_t *data, int64_t *size) = 0;
+};
+
 struct AudioEffectsFilterConfig {
   int sample_rate;
   int channels;
@@ -24,7 +32,7 @@ namespace soundtouch {
 class SoundTouch;
 }
 
-class AudioEffectsFilter {
+class AudioEffectsFilter : public AudioFilter {
 public:
   AudioEffectsFilter(AudioEffectsFilterConfig config);
   ~AudioEffectsFilter();
@@ -37,10 +45,10 @@ public:
   //[-12, 12]
   void setSemitone(int semitone);
 
-  FilterProcessResult process(uint8_t *data, int64_t *size);
+  FilterProcessResult process(uint8_t *data, int64_t *size) override;
 
-  int64_t flushRemaining();
-  void reciveRemaining(uint8_t *data, int64_t *size);
+  int64_t flushRemaining() override;
+  void reciveRemaining(uint8_t *data, int64_t *size) override;
 
 private:
   FilterProcessResult applyVolume(uint8_t *data, int64_t *size);

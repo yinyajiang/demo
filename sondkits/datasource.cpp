@@ -4,7 +4,7 @@
 #include <QtGlobal>
 #include <cstring>
 
-DataSource::DataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
+DataSource::DataSource(std::shared_ptr<AudioFilter> audio_filter,
                        int64_t frame_size)
     : m_audio_filter(audio_filter), m_frame_size(frame_size) {}
 
@@ -38,9 +38,9 @@ int64_t DataSource::readData(uint8_t *data, int64_t size) {
   return r;
 }
 
-DecodeDataSource::DecodeDataSource(
-    std::shared_ptr<AudioEffectsFilter> audio_filter, int64_t frame_size,
-    std::shared_ptr<DecodeQueue> decode_queue)
+DecodeDataSource::DecodeDataSource(std::shared_ptr<AudioFilter> audio_filter,
+                                   int64_t frame_size,
+                                   std::shared_ptr<DecodeQueue> decode_queue)
     : DataSource(audio_filter, frame_size), m_decode_queue(decode_queue) {}
 
 int64_t DecodeDataSource::realReadData(uint8_t *data, int64_t maxlen) {
@@ -62,7 +62,7 @@ int64_t DecodeDataSource::bytesAvailable() const {
 
 /******* ******************************************************/
 
-FileDataSource::FileDataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
+FileDataSource::FileDataSource(std::shared_ptr<AudioFilter> audio_filter,
                                int64_t frame_size, const std::string &file_path)
     : DataSource(audio_filter, frame_size), m_file(file_path.c_str()) {}
 
@@ -82,9 +82,8 @@ void FileDataSource::close() { m_file.close(); }
 
 /******* ******************************************************/
 
-MemoryDataSource::MemoryDataSource(
-    std::shared_ptr<AudioEffectsFilter> audio_filter, int64_t frame_size,
-    char *data, int size)
+MemoryDataSource::MemoryDataSource(std::shared_ptr<AudioFilter> audio_filter,
+                                   int64_t frame_size, char *data, int size)
     : DataSource(audio_filter, frame_size), m_data(data), m_size(size),
       m_pos(0) {}
 
@@ -110,7 +109,7 @@ void MemoryDataSource::open() { m_pos = 0; }
 void MemoryDataSource::close() { m_pos = 0; }
 
 CustomDataSource::CustomDataSource(
-    std::shared_ptr<AudioEffectsFilter> audio_filter, int64_t frame_size,
+    std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size,
     std::function<int64_t(uint8_t *data, int64_t size)> read_data_func,
     std::function<bool()> is_end_func,
     std::function<int64_t()> bytes_available_func)

@@ -12,7 +12,7 @@ extern "C" {
 }
 
 AudioPlayer::AudioPlayer(QObject *parent)
-    : QObject(parent), m_audio_play(nullptr), m_audio_filter(nullptr),
+    : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),
       m_stoped(false) {}
 
 AudioPlayer::~AudioPlayer() {}
@@ -52,14 +52,14 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   filter_config.channels = m_audio_decoder->targetChannels();
   filter_config.format = m_audio_decoder->targetSampleFormat();
   filter_config.max_tempo = MAX_TEMPO;
-  m_audio_filter = std::make_shared<AudioEffectsFilter>(filter_config);
+  m_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
   // decode queue
   auto decode_queue = std::make_shared<DecodeQueue>(m_audio_decoder);
 
   // data source
   auto data_source = std::make_shared<DecodeDataSource>(
-      m_audio_filter, audio_format.bytesPerFrame(), decode_queue);
+      m_effects_filter, audio_format.bytesPerFrame(), decode_queue);
   data_source->open();
 
   m_audio_play = std::make_unique<AudioPlay>(audio_format, data_source, this);
@@ -93,17 +93,17 @@ bool AudioPlayer::isPlaying() {
 }
 
 void AudioPlayer::setVolume(float volume) {
-  m_audio_filter->setVolume(volume, -1);
+  m_effects_filter->setVolume(volume, -1);
 }
 
 void AudioPlayer::setVolumeBalance(float balance) {
-  m_audio_filter->setVolumeBalance(balance);
+  m_effects_filter->setVolumeBalance(balance);
 }
 
-void AudioPlayer::setTempo(float tempo) { m_audio_filter->setTempo(tempo); }
+void AudioPlayer::setTempo(float tempo) { m_effects_filter->setTempo(tempo); }
 
 void AudioPlayer::setSemitone(int semitone) {
-  m_audio_filter->setSemitone(semitone);
+  m_effects_filter->setSemitone(semitone);
 }
 
 float AudioPlayer::detectBPMUseSoundtouch() {

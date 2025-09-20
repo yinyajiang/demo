@@ -11,8 +11,7 @@
 
 class DataSource {
 public:
-  DataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
-             int64_t frame_size);
+  DataSource(std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size);
   virtual ~DataSource() = default;
   virtual void open() = 0;
   virtual void close() = 0;
@@ -24,13 +23,13 @@ protected:
   virtual int64_t realReadData(uint8_t *data, int64_t size) = 0;
 
 private:
-  std::shared_ptr<AudioEffectsFilter> m_audio_filter;
+  std::shared_ptr<AudioFilter> m_audio_filter;
   const int64_t m_frame_size;
 };
 
 class DecodeDataSource : public DataSource {
 public:
-  DecodeDataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
+  DecodeDataSource(std::shared_ptr<AudioFilter> audio_filter,
                    int64_t frame_size,
                    std::shared_ptr<DecodeQueue> decode_queue);
 
@@ -49,7 +48,7 @@ private:
 class CustomDataSource : public DataSource {
 public:
   CustomDataSource(
-      std::shared_ptr<AudioEffectsFilter> audio_filter, int64_t frame_size,
+      std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size,
       std::function<int64_t(uint8_t *data, int64_t size)> read_data_func,
       std::function<bool()> is_end_func,
       std::function<int64_t()> bytes_available_func = nullptr);
@@ -70,8 +69,8 @@ private:
 
 class FileDataSource : public DataSource {
 public:
-  FileDataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
-                 int64_t frame_size, const std::string &file_path);
+  FileDataSource(std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size,
+                 const std::string &file_path);
 
   void open() override;
   void close() override;
@@ -87,7 +86,7 @@ private:
 
 class MemoryDataSource : public DataSource {
 public:
-  MemoryDataSource(std::shared_ptr<AudioEffectsFilter> audio_filter,
+  MemoryDataSource(std::shared_ptr<AudioFilter> audio_filter,
                    int64_t frame_size, char *data, int size);
 
   void open() override;
