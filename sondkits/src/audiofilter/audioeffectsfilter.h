@@ -1,24 +1,16 @@
 #pragma once
 
+#include "audiofilter.h"
 #include "common.h"
 #include <atomic>
 #include <functional>
 #include <limits>
 #include <memory>
-
-enum FilterProcessResult {
-  AUDIO_PROCESS_RESULT_SUCCESS,
-  AUDIO_PROCESS_RESULT_AGAIN,
-  AUDIO_PROCESS_RESULT_ERROR,
-};
-
-class AudioFilter {
-public:
-  virtual ~AudioFilter() = default;
-  virtual FilterProcessResult process(uint8_t *data, int64_t *size) = 0;
-  virtual int64_t flushRemaining() = 0;
-  virtual void reciveRemaining(uint8_t *data, int64_t *size) = 0;
-};
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libswresample/swresample.h>
+}
 
 struct AudioEffectsFilterConfig {
   int sample_rate;

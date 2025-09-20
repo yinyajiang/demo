@@ -1,12 +1,11 @@
 #include "audioplayer.h"
 #include "BPMDetect.h"
 #include "audiodecoder.h"
-#include "audiofilter.h"
+#include "audioeffectsfilter.h"
 #include "audioplay.h"
 #include "audioutils.h"
-#include "datasource.h"
+#include "decodedatasource.h"
 #include <chrono>
-#include <iostream>
 extern "C" {
 #include "aubio.h"
 }

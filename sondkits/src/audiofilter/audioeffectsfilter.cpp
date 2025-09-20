@@ -1,11 +1,10 @@
-#include "audiofilter.h"
+#include "audioeffectsfilter.h"
 extern "C" {
 #include <libavutil/avutil.h>
 }
 #include "SoundTouch.h"
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 
 AudioEffectsFilter::AudioEffectsFilter(AudioEffectsFilterConfig config)
     : m_config(config) {

@@ -1,5 +1,4 @@
 #pragma once
-#include "decodequeue.h"
 #include "datasource.h"
 #include <QAudioFormat>
 #include <QFile>
@@ -36,7 +35,6 @@ private:
   float m_balance;
 };
 
-
 class PCMDataSourceDevice : public QIODevice {
   Q_OBJECT
 public:
@@ -48,6 +46,7 @@ public:
   qint64 bytesAvailable() const override;
 
   qint64 writeData(const char *, qint64) override;
+
 private:
   std::shared_ptr<DataSource> m_data_source;
 };

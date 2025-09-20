@@ -1,10 +1,8 @@
 #pragma once
 
-#include "common.h"
+#include "decoder.h"
 #include <cstdint>
 #include <filesystem>
-#include <list>
-#include <vector>
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

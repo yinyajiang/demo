@@ -14,27 +14,36 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Multimedia)
 
 add_executable(sondkits
   main.cpp
-  audiodecoder.cpp
-  common.cpp
-  audioplay.cpp
-  audioplayer.cpp
+  src/decode/audiodecoder.cpp
+  src/decode/decodequeue.cpp
+  src/datasource/datasource.cpp
+  src/datasource/decodedatasource.cpp
+  src/datasource/filedatasource.cpp
+  src/datasource/memorydatasource.cpp
+  src/audiofilter/audioeffectsfilter.cpp
+  src/common/common.cpp
+  src/common/audioutils.cpp
+  src/audioplay.cpp
+  src/audioplayer.cpp
   mainwindow.cpp
-  decodequeue.cpp
-  datasource.cpp
-  audiofilter.cpp
-  audioutils.cpp
 
   mainwindow.h
-  audiodecoder.h
-  common.h
-  audioplay.h
-  audioplayer.h
-  decodequeue.h
-  datasource.h
-  audiofilter.h
-  audioutils.h
+  src/decode/audiodecoder.h
+  src/decode/decodequeue.h
+  src/decode/decoder.h
+  src/common/common.h
+  src/common/audioutils.h
+  src/datasource/datasource.h
+  src/datasource/decodedatasource.h
+  src/datasource/filedatasource.h
+  src/datasource/memorydatasource.h
+  src/audiofilter/audiofilter.h
+  src/audiofilter/audioeffectsfilter.h
+  src/audioplay.h
+  src/audioplayer.h
+
 )
-target_include_directories(sondkits PRIVATE .)
+target_include_directories(sondkits PRIVATE . ./src ./src/common ./src/decode ./src/datasource ./src/audiofilter)
 target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
 
 include(GNUInstallDirs)

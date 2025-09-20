@@ -1,15 +1,21 @@
 #pragma once
 
-#include "common.h"
+#include "decoder.h"
 #include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <thread>
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libswresample/swresample.h>
+}
 
 class DecodeQueue {
 public:
-  DecodeQueue(std::shared_ptr<DecoderInterface> decoder, int max_frames_size = 350);
+  DecodeQueue(std::shared_ptr<DecoderInterface> decoder,
+              int max_frames_size = 350);
   ~DecodeQueue();
 
   void start();

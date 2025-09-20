@@ -1,4 +1,5 @@
 #include "audioplay.h"
+#include "common.h"
 #include <QDebug>
 #include <QFile>
 #include <QtGlobal>

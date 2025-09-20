@@ -1,28 +1,25 @@
 #include "audioutils.h"
-#include "BPMDetect.h"
-#include "audiodecoder.h"
-#include "common.h"
-#include <filesystem>
-#include <functional>
-#include "datasource.h"
+#include "decode/audiodecoder.h"
+#include "decodedatasource.h"
 #include "decodequeue.h"
+#include <functional>
 extern "C" {
 #include <libavutil/avutil.h>
-#include "aubio.h"
 }
 
 void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
                         std::function<bool(uint8_t *, int64_t)> sink,
-                        int64_t min_sink_size,
-                        int64_t max_sink_size
-                        ) {
+                        int64_t min_sink_size, int64_t max_sink_size) {
   if (!audio_decoder || !sink) {
     return;
   }
 
-  int64_t frame_size = audio_decoder->targetChannels() * av_get_bytes_per_sample(audio_decoder->targetSampleFormat());
+  int64_t frame_size =
+      audio_decoder->targetChannels() *
+      av_get_bytes_per_sample(audio_decoder->targetSampleFormat());
 
-  std::shared_ptr<DecodeQueue> decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
+  std::shared_ptr<DecodeQueue> decode_queue =
+      std::make_shared<DecodeQueue>(audio_decoder);
   DecodeDataSource source(nullptr, frame_size, decode_queue);
   source.open();
 
@@ -44,23 +41,21 @@ void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
   while (!source.isEnd()) {
     int readed = 0;
     while (!source.isEnd() && readed < min_sink_size) {
-      int r = source.readData(buffer+readed, buffer_size-readed);
+      int r = source.readData(buffer + readed, buffer_size - readed);
       if (r > 0) {
         readed += r;
       }
     }
-    if (readed>0) {
-        auto con = sink(buffer, readed);
-        if (!con) {
+    if (readed > 0) {
+      auto con = sink(buffer, readed);
+      if (!con) {
         break;
-        }
+      }
     }
   }
   av_freep(&buffer);
   source.close();
 }
-
-
 
 int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
   // 将调性转换为对应的根音半音值
@@ -90,4 +85,3 @@ int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
     semitoneDifference += 12;
   return semitoneDifference;
 }
-

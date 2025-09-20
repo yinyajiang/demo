@@ -23,19 +23,22 @@ AudioDecoder::~AudioDecoder() { close(); }
 
 void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   int ret = 0;
-  if ((ret = avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(), nullptr,
-                          nullptr)) < 0) {
-    throw std::runtime_error("[avformat_open_input]Could not open input file:" + avErr2String(ret));
+  if ((ret = avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(),
+                                 nullptr, nullptr)) < 0) {
+    throw std::runtime_error("[avformat_open_input]Could not open input file:" +
+                             avErr2String(ret));
   }
 
   if ((ret = avformat_find_stream_info(m_fmt_ctx, nullptr)) < 0) {
-    throw std::runtime_error("[avformat_find_stream_info]Failed to retrieve input stream information");
+    throw std::runtime_error("[avformat_find_stream_info]Failed to retrieve "
+                             "input stream information");
   }
 
   int stream_index =
       av_find_best_stream(m_fmt_ctx, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
   if (stream_index < 0) {
-    throw std::runtime_error("[av_find_best_stream]Could not find audio stream in the input file");
+    throw std::runtime_error(
+        "[av_find_best_stream]Could not find audio stream in the input file");
   }
 
   AVStream *audio_stream = m_fmt_ctx->streams[stream_index];
@@ -66,9 +69,9 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   // Open the decoder
   ret = avcodec_open2(m_dec_ctx, decoder, nullptr);
   if (ret < 0) {
-    throw std::runtime_error("[avcodec_open2]Failed to open decoder for stream #" +
-                             std::to_string(stream_index) + ": " +
-                             avErr2String(ret));
+    throw std::runtime_error(
+        "[avcodec_open2]Failed to open decoder for stream #" +
+        std::to_string(stream_index) + ": " + avErr2String(ret));
   }
 
   m_in_astream_idx = stream_index;
@@ -80,8 +83,8 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
     m_frame = av_frame_alloc();
   }
 
-  //如果是完全满足要求的，则不需要重采样
-  if(m_target_channels <= 0 || m_target_sample_rate <= 0) {
+  // 如果是完全满足要求的，则不需要重采样
+  if (m_target_channels <= 0 || m_target_sample_rate <= 0) {
     m_swr_ctx = nullptr;
     return;
   }
@@ -108,7 +111,6 @@ int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
 
 int AudioDecoder::targetChannels() const { return m_target_channels; }
 
-
 AVSampleFormat AudioDecoder::targetSampleFormat() const {
   return m_target_sample_format;
 }
@@ -120,7 +122,6 @@ int AudioDecoder::channels() const { return m_dec_ctx->ch_layout.nb_channels; }
 AVSampleFormat AudioDecoder::sampleFormat() const {
   return m_dec_ctx->sample_fmt;
 }
-
 
 bool AudioDecoder::isEnd() const { return m_is_end; }
 
@@ -193,8 +194,7 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
           }
         }
       } else {
-        std::cerr << "Error reading packet: " << avErr2String(ret)
-                  << std::endl;
+        std::cerr << "Error reading packet: " << avErr2String(ret) << std::endl;
       }
       break;
     }
@@ -207,8 +207,7 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
     ret = avcodec_send_packet(m_dec_ctx, m_packet);
     if (ret < 0) {
       if (ret != AVERROR(EAGAIN)) {
-        std::cerr << "Error sending packet: " << avErr2String(ret)
-                  << std::endl;
+        std::cerr << "Error sending packet: " << avErr2String(ret) << std::endl;
       }
       continue;
     }
