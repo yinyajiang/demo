@@ -7,7 +7,8 @@ extern "C" {
 #include <cstdint>
 #include <iostream>
 
-AudioFilter::AudioFilter(AudioFilterConfig config) : m_config(config) {
+AudioEffectsFilter::AudioEffectsFilter(AudioEffectsFilterConfig config)
+    : m_config(config) {
   assert(!av_sample_fmt_is_planar(config.format));
   m_sample_size = av_get_bytes_per_sample(config.format);
   m_volume.store(1.0f);
@@ -20,16 +21,16 @@ AudioFilter::AudioFilter(AudioFilterConfig config) : m_config(config) {
   newSoundTouch();
 }
 
-AudioFilter::~AudioFilter() {}
+AudioEffectsFilter::~AudioEffectsFilter() {}
 
-float AudioFilter::volume(int channel_num) {
+float AudioEffectsFilter::volume(int channel_num) {
   if (channel_num == -1) {
     return m_volume.load();
   }
   return m_channels_volumes[channel_num].load();
 }
 
-void AudioFilter::setVolume(float volume, int channel_num) {
+void AudioEffectsFilter::setVolume(float volume, int channel_num) {
   if (volume > 1.0f)
     volume = 1.0f;
   else if (volume < 0.0f)
@@ -41,7 +42,7 @@ void AudioFilter::setVolume(float volume, int channel_num) {
   }
 }
 
-void AudioFilter::setTempo(float tempo) {
+void AudioEffectsFilter::setTempo(float tempo) {
   if (tempo <= 0.1f)
     return;
   if (tempo > m_config.max_tempo)
@@ -50,12 +51,12 @@ void AudioFilter::setTempo(float tempo) {
   newSoundTouch();
 }
 
-void AudioFilter::setSemitone(int semitone) {
+void AudioEffectsFilter::setSemitone(int semitone) {
   m_semitone = semitone;
   newSoundTouch();
 }
 
-void AudioFilter::setVolumeBalance(float balance) {
+void AudioEffectsFilter::setVolumeBalance(float balance) {
   if (m_config.channels != 2 || balance > 1.0f || balance < -1.0f) {
     return;
   }
@@ -66,7 +67,7 @@ void AudioFilter::setVolumeBalance(float balance) {
   }
 }
 
-AudioProcessResult AudioFilter::process(uint8_t *data, int64_t *size) {
+FilterProcessResult AudioEffectsFilter::process(uint8_t *data, int64_t *size) {
   auto r = applyTempoAndSemitone(data, size);
   if (r != AUDIO_PROCESS_RESULT_SUCCESS) {
     return r;
@@ -74,7 +75,7 @@ AudioProcessResult AudioFilter::process(uint8_t *data, int64_t *size) {
   return applyVolume(data, size);
 }
 
-int64_t AudioFilter::flushRemaining() {
+int64_t AudioEffectsFilter::flushRemaining() {
   int64_t num_samples = 0;
   m_sound_touch_lock.lock();
   if (m_soundtouch) {
@@ -88,7 +89,7 @@ int64_t AudioFilter::flushRemaining() {
   return num_samples * m_config.channels * m_sample_size;
 }
 
-void AudioFilter::reciveRemaining(uint8_t *data, int64_t *size) {
+void AudioEffectsFilter::reciveRemaining(uint8_t *data, int64_t *size) {
   m_sound_touch_lock.lock();
   if (m_soundtouch) {
     auto num_samples =
@@ -100,7 +101,8 @@ void AudioFilter::reciveRemaining(uint8_t *data, int64_t *size) {
   m_sound_touch_lock.unlock();
 }
 
-AudioProcessResult AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
+FilterProcessResult AudioEffectsFilter::applyVolume(uint8_t *data,
+                                                    int64_t *size) {
   if (!data || !size || *size <= 0) {
     return AUDIO_PROCESS_RESULT_SUCCESS;
   }
@@ -160,7 +162,8 @@ AudioProcessResult AudioFilter::applyVolume(uint8_t *data, int64_t *size) {
   return AUDIO_PROCESS_RESULT_SUCCESS;
 }
 
-AudioProcessResult AudioFilter::applyTempoAndSemitone(uint8_t *data, int64_t *size) {
+FilterProcessResult AudioEffectsFilter::applyTempoAndSemitone(uint8_t *data,
+                                                              int64_t *size) {
   if (!data || !size || *size <= 0) {
     return AUDIO_PROCESS_RESULT_SUCCESS;
   }
@@ -168,7 +171,7 @@ AudioProcessResult AudioFilter::applyTempoAndSemitone(uint8_t *data, int64_t *si
     return AUDIO_PROCESS_RESULT_ERROR;
   }
   m_sound_touch_lock.lock();
-  AudioProcessResult result = AUDIO_PROCESS_RESULT_SUCCESS;
+  FilterProcessResult result = AUDIO_PROCESS_RESULT_SUCCESS;
   if (m_soundtouch && (m_tempo != 1.0f || m_semitone != 0)) {
     auto num_samples =
         *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
@@ -177,7 +180,7 @@ AudioProcessResult AudioFilter::applyTempoAndSemitone(uint8_t *data, int64_t *si
     auto num = m_soundtouch->receiveSamples(
         reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
     if (num == 0) {
-        result = AUDIO_PROCESS_RESULT_AGAIN;
+      result = AUDIO_PROCESS_RESULT_AGAIN;
     }
     *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
   }
@@ -185,7 +188,7 @@ AudioProcessResult AudioFilter::applyTempoAndSemitone(uint8_t *data, int64_t *si
   return result;
 }
 
-void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {
+void AudioEffectsFilter::applyU8SampleVolume(uint8_t *data, float volume) {
   int v = static_cast<int>(*data) - 128; // 转为有符号中心 0
   float scaled = v * volume;
   if (scaled > 127.0f)
@@ -201,7 +204,7 @@ void AudioFilter::applyU8SampleVolume(uint8_t *data, float volume) {
   *data = static_cast<uint8_t>(out);
 }
 
-void AudioFilter::newSoundTouch() {
+void AudioEffectsFilter::newSoundTouch() {
   m_sound_touch_lock.lock();
   if (m_soundtouch) {
     m_soundtouch->clear();

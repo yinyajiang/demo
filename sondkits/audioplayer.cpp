@@ -1,18 +1,19 @@
 #include "audioplayer.h"
+#include "BPMDetect.h"
 #include "audiodecoder.h"
 #include "audiofilter.h"
 #include "audioplay.h"
 #include "audioutils.h"
 #include "datasource.h"
-#include <iostream>
-#include "BPMDetect.h"
 #include <chrono>
+#include <iostream>
 extern "C" {
-  #include "aubio.h"
+#include "aubio.h"
 }
 
 AudioPlayer::AudioPlayer(QObject *parent)
-    : QObject(parent), m_audio_play(nullptr), m_audio_filter(nullptr), m_stoped(false) {}
+    : QObject(parent), m_audio_play(nullptr), m_audio_filter(nullptr),
+      m_stoped(false) {}
 
 AudioPlayer::~AudioPlayer() {}
 
@@ -46,12 +47,12 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   }
 
   // filter
-  AudioFilterConfig filter_config;
+  AudioEffectsFilterConfig filter_config;
   filter_config.sample_rate = m_audio_decoder->targetSampleRate();
   filter_config.channels = m_audio_decoder->targetChannels();
   filter_config.format = m_audio_decoder->targetSampleFormat();
   filter_config.max_tempo = MAX_TEMPO;
-  m_audio_filter = std::make_shared<AudioFilter>(filter_config);
+  m_audio_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
   // decode queue
   auto decode_queue = std::make_shared<DecodeQueue>(m_audio_decoder);
@@ -101,7 +102,9 @@ void AudioPlayer::setVolumeBalance(float balance) {
 
 void AudioPlayer::setTempo(float tempo) { m_audio_filter->setTempo(tempo); }
 
-void AudioPlayer::setSemitone(int semitone) { m_audio_filter->setSemitone(semitone); }
+void AudioPlayer::setSemitone(int semitone) {
+  m_audio_filter->setSemitone(semitone);
+}
 
 float AudioPlayer::detectBPMUseSoundtouch() {
   if (!m_audio_decoder) {
@@ -117,7 +120,7 @@ float AudioPlayer::detectBPMUseSoundtouch() {
   foreachDecoderData(new_audio_decoder, [&](uint8_t *data, int size) {
     auto num_samples = size / sizeof(soundtouch::SAMPLETYPE) / channels;
     bpm.inputSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data),
-                    num_samples);
+                     num_samples);
     return !m_stoped.load();
   });
   new_audio_decoder->close();
@@ -138,12 +141,12 @@ float AudioPlayer::detectBPMUseAubio() {
   new_audio_decoder->open(m_in_fpath);
 
   int hop_size = 128;
-  int buf_size = 1024; 
-  auto tempo =
-      new_aubio_tempo("default", buf_size, hop_size, new_audio_decoder->targetSampleRate());
+  int buf_size = 1024;
+  auto tempo = new_aubio_tempo("default", buf_size, hop_size,
+                               new_audio_decoder->targetSampleRate());
 
   if (!tempo) {
-      return 0;
+    return 0;
   }
 
   fvec_t *input_vec = new_fvec(hop_size);
@@ -151,15 +154,17 @@ float AudioPlayer::detectBPMUseAubio() {
 
   // 检查向量是否创建成功
   if (!input_vec || !output_vec) {
-      if (input_vec) del_fvec(input_vec);
-      if (output_vec) del_fvec(output_vec);
-      del_aubio_tempo(tempo);
-      return 0;
+    if (input_vec)
+      del_fvec(input_vec);
+    if (output_vec)
+      del_fvec(output_vec);
+    del_aubio_tempo(tempo);
+    return 0;
   }
 
-  int hop_byte_size = hop_size*sizeof(float);
+  int hop_byte_size = hop_size * sizeof(float);
   int batch_size = 1024;
-  int batch_byte_size = hop_byte_size*batch_size;
+  int batch_byte_size = hop_byte_size * batch_size;
 
   foreachDecoderData(
       new_audio_decoder,
@@ -185,36 +190,34 @@ float AudioPlayer::detectBPMUseAubio() {
       },
       batch_byte_size, batch_byte_size);
 
-    float bpm = 0;
-    if (!m_stoped.load()) {
-      bpm = aubio_tempo_get_bpm(tempo);
-    } 
-    del_aubio_tempo(tempo);
-    del_fvec(input_vec);
-    del_fvec(output_vec);
-    new_audio_decoder->close();
-    return bpm;
+  float bpm = 0;
+  if (!m_stoped.load()) {
+    bpm = aubio_tempo_get_bpm(tempo);
+  }
+  del_aubio_tempo(tempo);
+  del_fvec(input_vec);
+  del_fvec(output_vec);
+  new_audio_decoder->close();
+  return bpm;
 }
-
 
 AudioInfo AudioPlayer::fetchAudioInfo() {
   AudioInfo info;
   info.key = 0;
-auto start_time = std::chrono::high_resolution_clock::now();
+  auto start_time = std::chrono::high_resolution_clock::now();
 #if USE_AUBIO_BPM
   info.bpm = detectBPMUseAubio();
 #else
   info.bpm = detectBPMUseSoundtouch();
 #endif
-  
+
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
       end_time - start_time);
 #if PRINT_READ_CONSUME_TIME
-  std::cout << "### detct bpm duration: " << duration.count()
-            << "ms";
+  std::cout << "### detct bpm duration: " << duration.count() << "ms";
 #endif
-  
+
   info.channels = m_audio_decoder->channels();
   info.sample_rate = m_audio_decoder->sampleRate();
   info.duration_seconds = (int)m_audio_decoder->duration();

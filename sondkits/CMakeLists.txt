@@ -46,6 +46,7 @@ install(TARGETS sondkits
 
 
 # FFmpeg
+# aubio
 if(WIN32)
     set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared")
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
@@ -60,8 +61,10 @@ if(WIN32)
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac-arm64")
+        set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac-arm64")
     else()
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac")
+        set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac")
     endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
     target_link_libraries(sondkits PRIVATE
@@ -72,6 +75,9 @@ else()
         "${ffmpeg_base_path}/lib/libswscale.dylib"
         "${ffmpeg_base_path}/lib/libswresample.dylib"
     )
+
+    target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
+    target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
 endif()
 
 # SoundTouch
@@ -79,6 +85,5 @@ add_subdirectory(3rd/soundtouch)
 target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/soundtouch/include")
 target_link_libraries(sondkits PRIVATE SoundTouch)
 
-# 3rd/aubio
-target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/aubio/src")
-target_link_libraries(sondkits PRIVATE "${PROJECT_SOURCE_DIR}/3rd/aubio/lib/libaubio.dylib")
+
+

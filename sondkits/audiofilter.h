@@ -5,13 +5,14 @@
 #include <functional>
 #include <limits>
 #include <memory>
-#include <mutex>
 
-namespace soundtouch {
-class SoundTouch;
-}
+enum FilterProcessResult {
+  AUDIO_PROCESS_RESULT_SUCCESS,
+  AUDIO_PROCESS_RESULT_AGAIN,
+  AUDIO_PROCESS_RESULT_ERROR,
+};
 
-struct AudioFilterConfig {
+struct AudioEffectsFilterConfig {
   int sample_rate;
   int channels;
   AVSampleFormat format;
@@ -19,16 +20,14 @@ struct AudioFilterConfig {
   float min_tempo;
 };
 
-enum AudioProcessResult {
-  AUDIO_PROCESS_RESULT_SUCCESS,
-  AUDIO_PROCESS_RESULT_AGAIN,
-  AUDIO_PROCESS_RESULT_ERROR,
-};
+namespace soundtouch {
+class SoundTouch;
+}
 
-class AudioFilter {
+class AudioEffectsFilter {
 public:
-  AudioFilter(AudioFilterConfig config);
-  ~AudioFilter();
+  AudioEffectsFilter(AudioEffectsFilterConfig config);
+  ~AudioEffectsFilter();
   //[0.0, 1.0]
   void setVolume(float volume, int channel_num = -1);
   float volume(int channel_num = -1);
@@ -38,14 +37,14 @@ public:
   //[-12, 12]
   void setSemitone(int semitone);
 
-  AudioProcessResult process(uint8_t *data, int64_t *size);
+  FilterProcessResult process(uint8_t *data, int64_t *size);
 
   int64_t flushRemaining();
   void reciveRemaining(uint8_t *data, int64_t *size);
 
 private:
-  AudioProcessResult applyVolume(uint8_t *data, int64_t *size);
-  AudioProcessResult applyTempoAndSemitone(uint8_t *data, int64_t *size);
+  FilterProcessResult applyVolume(uint8_t *data, int64_t *size);
+  FilterProcessResult applyTempoAndSemitone(uint8_t *data, int64_t *size);
   void newSoundTouch();
 
   template <typename T>
@@ -70,7 +69,7 @@ private:
   }
 
 private:
-  AudioFilterConfig m_config;
+  AudioEffectsFilterConfig m_config;
   int m_sample_size;
   std::atomic<float> m_volume;
   std::atomic<float> m_channels_volumes[10];

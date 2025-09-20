@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <memory>
 
-
 struct AudioInfo {
   float bpm;
   int key;
@@ -15,9 +14,8 @@ struct AudioInfo {
   int consume_time_ms;
 };
 
-
 class AudioPlay;
-class AudioFilter;
+class AudioEffectsFilter;
 class AudioDecoder;
 class AudioPlayer : public QObject {
   Q_OBJECT
@@ -44,9 +42,10 @@ signals:
 private:
   float detectBPMUseSoundtouch();
   float detectBPMUseAubio();
+
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
-  std::shared_ptr<AudioFilter> m_audio_filter;
+  std::shared_ptr<AudioEffectsFilter> m_audio_filter;
   std::shared_ptr<AudioDecoder> m_audio_decoder;
   std::filesystem::path m_in_fpath;
   std::atomic<bool> m_stoped;
