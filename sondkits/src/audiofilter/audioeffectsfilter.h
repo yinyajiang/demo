@@ -37,10 +37,11 @@ public:
   //[-12, 12]
   void setSemitone(int semitone);
 
-  FilterProcessResult process(uint8_t *data, int64_t *size) override;
-
-  int64_t flushRemaining() override;
   void reciveRemaining(uint8_t *data, int64_t *size) override;
+
+protected:
+  int64_t realFlushRemaining() override;
+  FilterProcessResult realProcess(uint8_t *data, int64_t *size) override;
 
 private:
   FilterProcessResult applyVolume(uint8_t *data, int64_t *size);

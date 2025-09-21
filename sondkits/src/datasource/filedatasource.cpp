@@ -11,7 +11,7 @@ int64_t FileDataSource::realReadData(uint8_t *data, int64_t maxlen) {
   return m_file.read(reinterpret_cast<char *>(data), maxlen);
 }
 
-bool FileDataSource::isEnd() const { return m_file.atEnd(); }
+bool FileDataSource::realIsEnd() const { return m_file.atEnd(); }
 
 int64_t FileDataSource::bytesAvailable() const {
   return m_file.bytesAvailable();

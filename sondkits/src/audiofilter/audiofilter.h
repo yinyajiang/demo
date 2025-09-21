@@ -10,8 +10,25 @@ enum FilterProcessResult {
 
 class AudioFilter {
 public:
+  AudioFilter() : m_flushed(false) {}
   virtual ~AudioFilter() = default;
-  virtual FilterProcessResult process(uint8_t *data, int64_t *size) = 0;
-  virtual int64_t flushRemaining() = 0;
+  FilterProcessResult process(uint8_t *data, int64_t *size) {
+    if (data && size && *size) {
+      m_flushed = false;
+    }
+    return realProcess(data, size);
+  }
+  int64_t flushRemaining() {
+    m_flushed = true;
+    return realFlushRemaining();
+  }
   virtual void reciveRemaining(uint8_t *data, int64_t *size) = 0;
+  bool isFlushed() { return m_flushed; }
+
+protected:
+  virtual int64_t realFlushRemaining() = 0;
+  virtual FilterProcessResult realProcess(uint8_t *data, int64_t *size) = 0;
+
+private:
+  bool m_flushed;
 };

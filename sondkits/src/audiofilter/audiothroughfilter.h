@@ -13,17 +13,17 @@ public:
       bool auto_fill_in = false);
   ~AudioThroughFilter();
 
-  FilterProcessResult process(uint8_t *data, int64_t *size) override;
-
-  int64_t flushRemaining() override;
-
   void reciveRemaining(uint8_t *, int64_t *) override;
 
 protected:
-  virtual void realProcess(uint8_t *data, int64_t size);
+  virtual void throughSink(uint8_t *data, int64_t size);
+
+protected:
+  int64_t realFlushRemaining() override;
+  FilterProcessResult realProcess(uint8_t *data, int64_t *size) override;
 
 private:
-  std::function<void(uint8_t *data, int64_t size)> m_real_process;
+  std::function<void(uint8_t *data, int64_t size)> m_alter_sink_fun;
   const int64_t m_hope_process_size;
   std::vector<uint8_t> m_cache;
   int64_t m_used_cache_size;

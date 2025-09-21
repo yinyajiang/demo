@@ -7,7 +7,7 @@ extern "C" {
 #include <cstdint>
 
 AudioEffectsFilter::AudioEffectsFilter(AudioEffectsFilterConfig config)
-    : m_config(config) {
+    : AudioFilter(), m_config(config) {
   assert(!av_sample_fmt_is_planar(config.format));
   m_sample_size = av_get_bytes_per_sample(config.format);
   m_volume.store(1.0f);
@@ -66,7 +66,8 @@ void AudioEffectsFilter::setVolumeBalance(float balance) {
   }
 }
 
-FilterProcessResult AudioEffectsFilter::process(uint8_t *data, int64_t *size) {
+FilterProcessResult AudioEffectsFilter::realProcess(uint8_t *data,
+                                                    int64_t *size) {
   auto r = applyTempoAndSemitone(data, size);
   if (r != AUDIO_PROCESS_RESULT_SUCCESS) {
     return r;
@@ -74,7 +75,7 @@ FilterProcessResult AudioEffectsFilter::process(uint8_t *data, int64_t *size) {
   return applyVolume(data, size);
 }
 
-int64_t AudioEffectsFilter::flushRemaining() {
+int64_t AudioEffectsFilter::realFlushRemaining() {
   int64_t num_samples = 0;
   m_sound_touch_lock.lock();
   if (m_soundtouch) {

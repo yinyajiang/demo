@@ -22,7 +22,7 @@ int64_t MemoryDataSource::realReadData(uint8_t *data, int64_t maxlen) {
   return len;
 }
 
-bool MemoryDataSource::isEnd() const { return m_pos >= m_size; }
+bool MemoryDataSource::realIsEnd() const { return m_pos >= m_size; }
 
 int64_t MemoryDataSource::bytesAvailable() const { return m_size - m_pos; }
 

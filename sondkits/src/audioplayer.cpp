@@ -1,14 +1,9 @@
 #include "audioplayer.h"
-#include "BPMDetect.h"
 #include "audiodecoder.h"
 #include "audioeffectsfilter.h"
 #include "audioplay.h"
 #include "audioutils.h"
 #include "decodedatasource.h"
-#include <chrono>
-extern "C" {
-#include "aubio.h"
-}
 
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),

@@ -7,6 +7,8 @@ DataSource::DataSource(std::shared_ptr<AudioFilter> audio_filter,
                        int64_t frame_size)
     : m_audio_filter(audio_filter), m_frame_size(frame_size) {}
 
+bool DataSource::isEnd() { return realIsEnd() && filterIsFlushed(0); }
+
 int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
   // 确保size 是每一帧的倍数
   if (max_size % m_frame_size != 0) {
@@ -83,4 +85,18 @@ DataSource::filterFlushReciveRemaining(int start_filter_index, uint8_t *data,
     return filterFlushReciveRemaining(next_filter, data, size);
   }
   return result;
+}
+
+bool DataSource::filterIsFlushed(int start_filter_index) {
+  if (start_filter_index >= m_audio_filters.size()) {
+    return true;
+  }
+  for (auto filter_index = start_filter_index;
+       filter_index < m_audio_filters.size(); ++filter_index) {
+    auto &filter = m_audio_filters[filter_index];
+    if (!filter->isFlushed()) {
+      return false;
+    }
+  }
+  return true;
 }
