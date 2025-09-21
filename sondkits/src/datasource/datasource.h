@@ -2,6 +2,7 @@
 #pragma once
 #include "audiofilter.h"
 #include <memory>
+#include <vector>
 
 class DataSource {
 public:
@@ -16,7 +17,14 @@ public:
 protected:
   virtual int64_t realReadData(uint8_t *data, int64_t size) = 0;
 
+  FilterProcessResult filterProcess(int start_filter_index, uint8_t *data,
+                                    int64_t *size);
+  FilterProcessResult filterFlushReciveRemaining(int start_filter_index,
+                                                 uint8_t *data, int64_t *size);
+
 private:
   std::shared_ptr<AudioFilter> m_audio_filter;
+
+  std::vector<std::shared_ptr<AudioFilter>> m_audio_filters;
   const int64_t m_frame_size;
 };
