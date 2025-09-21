@@ -1,18 +1,9 @@
 #pragma once
 
+#include "audioinfo.h"
 #include <QObject>
 #include <filesystem>
 #include <memory>
-
-struct AudioInfo {
-  float bpm;
-  int key;
-  int channels;
-  int sample_rate;
-  int duration_seconds;
-  std::string sample_format;
-  int consume_time_ms;
-};
 
 class AudioPlay;
 class AudioEffectsFilter;
@@ -40,13 +31,10 @@ signals:
   void signal_play_finished();
 
 private:
-  float detectBPMUseSoundtouch();
-  float detectBPMUseAubio();
-
-private:
   std::unique_ptr<AudioPlay> m_audio_play;
   std::shared_ptr<AudioEffectsFilter> m_effects_filter;
   std::shared_ptr<AudioDecoder> m_audio_decoder;
+  std::shared_ptr<FetchAudioInfo> m_audio_info_fetch;
   std::filesystem::path m_in_fpath;
   std::atomic<bool> m_stoped;
 };

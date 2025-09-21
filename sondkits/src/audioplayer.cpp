@@ -19,6 +19,8 @@ AudioPlayer::~AudioPlayer() {}
 void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   m_in_fpath = in_fpath;
   m_stoped.store(false);
+
+  m_audio_info_fetch = std::make_shared<FetchAudioInfo>();
   // decoder
   m_audio_decoder = std::make_shared<AudioDecoder>(
       DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS, DEFAULT_SAMPLE_AV_FORMAT);
@@ -82,6 +84,9 @@ void AudioPlayer::stop() {
   if (m_audio_play) {
     m_audio_play->stop();
   }
+  if (m_audio_info_fetch) {
+    m_audio_info_fetch->stop();
+  }
 }
 
 bool AudioPlayer::isPlaying() {
@@ -105,122 +110,9 @@ void AudioPlayer::setSemitone(int semitone) {
   m_effects_filter->setSemitone(semitone);
 }
 
-float AudioPlayer::detectBPMUseSoundtouch() {
-  if (!m_audio_decoder) {
-    return 0;
-  }
-  int channels = 1;
-  auto new_audio_decoder = std::make_shared<AudioDecoder>(
-      m_audio_decoder->sampleRate(), channels, AV_SAMPLE_FMT_FLT);
-  new_audio_decoder->open(m_in_fpath);
-
-  soundtouch::BPMDetect bpm(channels, m_audio_decoder->sampleRate());
-
-  foreachDecoderData(new_audio_decoder, [&](uint8_t *data, int size) {
-    auto num_samples = size / sizeof(soundtouch::SAMPLETYPE) / channels;
-    bpm.inputSamples(reinterpret_cast<soundtouch::SAMPLETYPE *>(data),
-                     num_samples);
-    return !m_stoped.load();
-  });
-  new_audio_decoder->close();
-  if (m_stoped.load()) {
-    return 0;
-  }
-  auto r = bpm.getBpm();
-  return r + 0.5f;
-}
-
-float AudioPlayer::detectBPMUseAubio() {
-  if (!m_audio_decoder) {
-    return 0;
-  }
-  int channels = 1;
-  auto new_audio_decoder = std::make_shared<AudioDecoder>(
-      m_audio_decoder->sampleRate(), channels, AV_SAMPLE_FMT_FLT);
-  new_audio_decoder->open(m_in_fpath);
-
-  int hop_size = 96;
-  int buf_size = 512;
-  auto tempo = new_aubio_tempo("default", buf_size, hop_size,
-                               new_audio_decoder->targetSampleRate());
-
-  if (!tempo) {
-    return 0;
-  }
-
-  fvec_t *input_vec = new_fvec(hop_size);
-  fvec_t *output_vec = new_fvec(2);
-
-  // 检查向量是否创建成功
-  if (!input_vec || !output_vec) {
-    if (input_vec)
-      del_fvec(input_vec);
-    if (output_vec)
-      del_fvec(output_vec);
-    del_aubio_tempo(tempo);
-    return 0;
-  }
-
-  int hop_byte_size = hop_size * sizeof(float);
-  int batch_size = 1024;
-  int batch_byte_size = hop_byte_size * batch_size;
-
-  foreachDecoderData(
-      new_audio_decoder,
-      [&](uint8_t *data, int size) {
-        if (!data || size <= 0) {
-          return true;
-        }
-
-        for (int i = 0; i < size / hop_byte_size; i++) {
-          fvec_zeros(input_vec);
-          memcpy(input_vec->data, data + i * hop_byte_size, hop_byte_size);
-          aubio_tempo_do(tempo, input_vec, output_vec);
-        }
-
-        if (size % hop_byte_size != 0) {
-          fvec_zeros(input_vec);
-          int offset = size / hop_byte_size * hop_byte_size;
-          memcpy(input_vec->data, data + offset, size - offset);
-          aubio_tempo_do(tempo, input_vec, output_vec);
-        }
-
-        return !m_stoped.load();
-      },
-      batch_byte_size, batch_byte_size);
-
-  float bpm = 0;
-  if (!m_stoped.load()) {
-    bpm = aubio_tempo_get_bpm(tempo);
-  }
-  del_aubio_tempo(tempo);
-  del_fvec(input_vec);
-  del_fvec(output_vec);
-  new_audio_decoder->close();
-  return bpm;
-}
-
 AudioInfo AudioPlayer::fetchAudioInfo() {
-  AudioInfo info;
-  info.key = 0;
-  auto start_time = std::chrono::high_resolution_clock::now();
-#if USE_AUBIO_BPM
-  info.bpm = detectBPMUseAubio();
-#else
-  info.bpm = detectBPMUseSoundtouch();
-#endif
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-      end_time - start_time);
-#if PRINT_READ_CONSUME_TIME
-  std::cout << "### detct bpm duration: " << duration.count() << "ms";
-#endif
-
-  info.channels = m_audio_decoder->channels();
-  info.sample_rate = m_audio_decoder->sampleRate();
-  info.duration_seconds = (int)m_audio_decoder->duration();
-  info.sample_format = av_get_sample_fmt_name(m_audio_decoder->sampleFormat());
-  info.consume_time_ms = duration.count();
-  return info;
+  if (m_audio_info_fetch) {
+    return m_audio_info_fetch->fetchAudioInfo(m_in_fpath);
+  }
+  return AudioInfo();
 }

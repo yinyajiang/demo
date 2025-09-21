@@ -22,6 +22,7 @@ add_executable(sondkits
   src/datasource/memorydatasource.cpp
   src/audiofilter/audioeffectsfilter.cpp
   src/audiofilter/audiothroughfilter.cpp
+  src/audioinfo/audioinfo.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -41,11 +42,12 @@ add_executable(sondkits
   src/audiofilter/audiofilter.h
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
+  src/audioinfo/audioinfo.h
   src/audioplay.h
   src/audioplayer.h
 
 )
-target_include_directories(sondkits PRIVATE . ./src ./src/common ./src/decode ./src/datasource ./src/audiofilter)
+target_include_directories(sondkits PRIVATE . ./src ./src/common ./src/decode ./src/datasource ./src/audiofilter ./src/audioinfo)
 target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
 
 include(GNUInstallDirs)
