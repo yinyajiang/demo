@@ -21,6 +21,7 @@ add_executable(sondkits
   src/datasource/filedatasource.cpp
   src/datasource/memorydatasource.cpp
   src/audiofilter/audioeffectsfilter.cpp
+  src/audiofilter/audiothroughfilter.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -39,6 +40,7 @@ add_executable(sondkits
   src/datasource/memorydatasource.h
   src/audiofilter/audiofilter.h
   src/audiofilter/audioeffectsfilter.h
+  src/audiofilter/audiothroughfilter.h
   src/audioplay.h
   src/audioplayer.h
 
