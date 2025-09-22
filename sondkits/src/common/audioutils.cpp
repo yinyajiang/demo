@@ -20,8 +20,9 @@ void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
 
   std::shared_ptr<DecodeQueue> decode_queue =
       std::make_shared<DecodeQueue>(audio_decoder);
+  decode_queue->start();
   DecodeDataSource source(nullptr, frame_size, decode_queue);
-  source.open();
+
 
   if (min_sink_size <= 0) {
     min_sink_size = frame_size;
@@ -54,7 +55,7 @@ void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
     }
   }
   av_freep(&buffer);
-  source.close();
+  decode_queue->stop();
 }
 
 int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
