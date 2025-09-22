@@ -23,6 +23,7 @@ add_executable(sondkits
   src/audiofilter/audioeffectsfilter.cpp
   src/audiofilter/audiothroughfilter.cpp
   src/audioinfo/audioinfo.cpp
+  src/audioinfo/keydetector.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -43,11 +44,19 @@ add_executable(sondkits
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
   src/audioinfo/audioinfo.h
+  src/audioinfo/keydetector.h
   src/audioplay.h
   src/audioplayer.h
 
 )
-target_include_directories(sondkits PRIVATE . ./src ./src/common ./src/decode ./src/datasource ./src/audiofilter ./src/audioinfo)
+target_include_directories(sondkits PRIVATE . 
+                        ./src 
+                        ./src/common
+                        ./src/decode
+                        ./src/datasource
+                        ./src/audiofilter
+                        ./src/audioinfo)
+
 target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
 
 include(GNUInstallDirs)
@@ -76,6 +85,10 @@ if(WIN32)
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
     target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/aubio.lib")
 
+    set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder")
+    target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
+    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/keyfinder.lib")
+
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac-arm64")
@@ -83,6 +96,7 @@ else()
     else()
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac")
         set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac")
+        set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder")
     endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
     target_link_libraries(sondkits PRIVATE
@@ -96,6 +110,9 @@ else()
 
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
     target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
+
+    target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
+    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
 endif()
 
 # SoundTouch
