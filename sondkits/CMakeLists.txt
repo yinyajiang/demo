@@ -23,7 +23,8 @@ add_executable(sondkits
   src/audiofilter/audioeffectsfilter.cpp
   src/audiofilter/audiothroughfilter.cpp
   src/audioinfo/audioinfo.cpp
-  src/audioinfo/keydetector.cpp
+  src/audioinfo/bpmfilter.cpp
+  #src/audioinfo/keydetector.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -44,7 +45,8 @@ add_executable(sondkits
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
   src/audioinfo/audioinfo.h
-  src/audioinfo/keydetector.h
+  src/audioinfo/bpmfilter.h
+  #src/audioinfo/keydetector.h
   src/audioplay.h
   src/audioplayer.h
 
@@ -111,8 +113,8 @@ else()
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
     target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
 
-    target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
+    #target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
+    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
 endif()
 
 # SoundTouch

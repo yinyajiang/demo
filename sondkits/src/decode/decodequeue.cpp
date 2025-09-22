@@ -41,7 +41,8 @@ void DecodeQueue::stop() {
 bool DecodeQueue::aborted() { return m_abort.load(); }
 
 bool DecodeQueue::canRead() {
-  return aborted() || (is_empty() && is_decode_stopped());
+    if(aborted()){return false;};
+  return !is_empty() || !is_decode_stopped();
 }
 
 int64_t DecodeQueue::readDataUntil(uint8_t *buffer, int64_t buffer_size) {
@@ -65,6 +66,9 @@ int64_t DecodeQueue::readData(uint8_t *buffer, int64_t buffer_size) {
     m_cv_read.wait(lock, [this]() -> bool {
       return aborted() || !is_empty() || is_decode_stopped();
     });
+    if(!canRead()){
+        return 0;
+    }
   }
 
   int64_t readed = 0;

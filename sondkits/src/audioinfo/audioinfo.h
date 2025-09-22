@@ -25,6 +25,7 @@ public:
 private:
   float detectBPMUseSoundtouch(std::shared_ptr<AudioDecoder> audio_decoder);
   float detectBPMUseAubio(std::shared_ptr<AudioDecoder> audio_decoder);
+  float demo(std::shared_ptr<AudioDecoder> audio_decoder);
 
 private:
   std::atomic<bool> m_stoped;

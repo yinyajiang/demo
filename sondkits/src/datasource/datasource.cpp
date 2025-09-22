@@ -9,6 +9,18 @@ DataSource::DataSource(std::shared_ptr<AudioFilter> audio_filter,
 
 bool DataSource::isEnd() { return realIsEnd() && filterIsFlushed(0); }
 
+void DataSource::consumeAll() {
+  std::vector<uint8_t> buffer(m_frame_size * 1024);
+  while (!isEnd()) {
+    while (1) {
+      auto r = readData(buffer.data(), buffer.size());
+      if (r == 0) {
+        break;
+      }
+    }
+  }
+}
+
 int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
   // 确保size 是每一帧的倍数
   if (max_size % m_frame_size != 0) {

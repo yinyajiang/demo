@@ -9,6 +9,7 @@ extern "C" {
 }
 #include "audioutils.h"
 #include "common.h"
+#include "bpmfilter.h"
 
 FetchAudioInfo::FetchAudioInfo() : m_stoped(false) {}
 
@@ -73,6 +74,8 @@ float FetchAudioInfo::detectBPMUseSoundtouch(
 
 float FetchAudioInfo::detectBPMUseAubio(
     std::shared_ptr<AudioDecoder> audio_decoder) {
+  return demo(audio_decoder);
+  
   assert(audio_decoder->targetChannels() == 1);
   assert(audio_decoder->targetSampleFormat() == AV_SAMPLE_FMT_FLT);
 
@@ -134,4 +137,20 @@ float FetchAudioInfo::detectBPMUseAubio(
   del_fvec(input_vec);
   del_fvec(output_vec);
   return bpm;
+}
+
+
+float FetchAudioInfo::demo(std::shared_ptr<AudioDecoder> audio_decoder) {
+  int64_t frame_size =
+      audio_decoder->targetChannels() *
+      av_get_bytes_per_sample(audio_decoder->targetSampleFormat());
+
+  std::shared_ptr<DecodeQueue> decode_queue =
+      std::make_shared<DecodeQueue>(audio_decoder);
+  decode_queue->start();
+
+  auto bpm_filter = std::make_shared<BPMFilter>(audio_decoder);
+  DecodeDataSource source(bpm_filter, frame_size, decode_queue);
+  source.consumeAll();
+  return bpm_filter->getBPM();
 }

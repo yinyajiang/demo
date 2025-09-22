@@ -10,8 +10,8 @@ public:
   virtual ~DataSource() = default;
   virtual int64_t bytesAvailable() const = 0;
   int64_t readData(uint8_t *data, int64_t size);
-  // todo: filter is end ?
   bool isEnd();
+  void consumeAll();
 
 protected:
   virtual int64_t realReadData(uint8_t *data, int64_t size) = 0;
