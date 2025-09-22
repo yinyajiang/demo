@@ -24,7 +24,7 @@ add_executable(sondkits
   src/audiofilter/audiothroughfilter.cpp
   src/audioinfo/audioinfo.cpp
   src/audioinfo/bpmfilter.cpp
-  #src/audioinfo/keydetector.cpp
+  src/audioinfo/keyfilter.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -46,7 +46,7 @@ add_executable(sondkits
   src/audiofilter/audiothroughfilter.h
   src/audioinfo/audioinfo.h
   src/audioinfo/bpmfilter.h
-  #src/audioinfo/keydetector.h
+  src/audioinfo/keyfilter.h
   src/audioplay.h
   src/audioplayer.h
 
@@ -95,10 +95,11 @@ else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac-arm64")
         set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac-arm64")
+        set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder-mac-arm64")
     else()
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac")
         set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac")
-        set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder")
+        set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder-mac")
     endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
     target_link_libraries(sondkits PRIVATE
@@ -113,8 +114,8 @@ else()
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
     target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
 
-    #target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
+    target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
+    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
 endif()
 
 # SoundTouch

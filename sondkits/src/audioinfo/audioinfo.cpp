@@ -4,12 +4,14 @@
 #include "audioutils.h"
 #include "decodedatasource.h"
 #include <chrono>
+#include <iostream>
 extern "C" {
 #include "aubio.h"
 }
 #include "audioutils.h"
-#include "common.h"
 #include "bpmfilter.h"
+#include "common.h"
+#include "keyfilter.h"
 
 FetchAudioInfo::FetchAudioInfo() : m_stoped(false) {}
 
@@ -28,10 +30,13 @@ AudioInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath) {
   audio_decoder->open(in_fpath);
 
 #if USE_AUBIO_BPM
-  info.bpm = detectBPMUseAubio(audio_decoder);
+  // info.bpm = detectBPMUseAubio(audio_decoder);
 #else
-  info.bpm = detectBPMUseSoundtouch(audio_decoder);
+  // info.bpm = detectBPMUseSoundtouch(audio_decoder);
 #endif
+  info.key = demo2(audio_decoder);
+  info.key_string =
+      KeyFilter::keyToString(static_cast<KeyFinder::key_t>(info.key));
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -75,7 +80,7 @@ float FetchAudioInfo::detectBPMUseSoundtouch(
 float FetchAudioInfo::detectBPMUseAubio(
     std::shared_ptr<AudioDecoder> audio_decoder) {
   return demo(audio_decoder);
-  
+
   assert(audio_decoder->targetChannels() == 1);
   assert(audio_decoder->targetSampleFormat() == AV_SAMPLE_FMT_FLT);
 
@@ -139,7 +144,6 @@ float FetchAudioInfo::detectBPMUseAubio(
   return bpm;
 }
 
-
 float FetchAudioInfo::demo(std::shared_ptr<AudioDecoder> audio_decoder) {
   int64_t frame_size =
       audio_decoder->targetChannels() *
@@ -153,4 +157,22 @@ float FetchAudioInfo::demo(std::shared_ptr<AudioDecoder> audio_decoder) {
   DecodeDataSource source(bpm_filter, frame_size, decode_queue);
   source.consumeAll();
   return bpm_filter->getBPM();
+}
+
+int FetchAudioInfo::demo2(std::shared_ptr<AudioDecoder> audio_decoder) {
+  int64_t frame_size =
+      audio_decoder->targetChannels() *
+      av_get_bytes_per_sample(audio_decoder->targetSampleFormat());
+
+  std::shared_ptr<DecodeQueue> decode_queue =
+      std::make_shared<DecodeQueue>(audio_decoder);
+  decode_queue->start();
+
+  auto key_filter = std::make_shared<KeyFilter>(audio_decoder);
+  DecodeDataSource source(key_filter, frame_size, decode_queue);
+  source.consumeAll();
+
+  auto key = key_filter->getKey();
+
+  return key;
 }

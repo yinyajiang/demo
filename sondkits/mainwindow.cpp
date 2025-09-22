@@ -179,7 +179,6 @@ void MainWindow::setupUI() {
   connect(m_tempoSlider, &QSlider::valueChanged, this,
           &MainWindow::onTempoChanged);
 
-
   // 升降调控制组
   auto semitoneGroup = new QGroupBox("升降调");
   auto semitoneLayout = new QHBoxLayout(semitoneGroup);
@@ -235,21 +234,27 @@ void MainWindow::onOpenFile() {
   if (fileName.isEmpty()) {
     return;
   }
-
   m_player->stop();
-  try{
+  try {
     m_player->open(fileName.toStdWString());
     m_playPauseButton->setEnabled(true);
     auto info = m_player->fetchAudioInfo();
-     m_audioInfoLabel->setText(QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5,\r\n 时长: %6, 耗时: %7ms")
-                           .arg(info.bpm)
-                           .arg(info.key)
-                           .arg(info.channels)
-                           .arg(info.sample_rate)
-                           .arg(QString::fromStdString(info.sample_format))
-                           .arg(formatTime(info.duration_seconds))
-                           .arg(info.consume_time_ms));
-  }catch(const std::exception& e){
+    m_audioInfoLabel->setText(
+        QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5,\r\n "
+                "时长: %6, 耗时: %7ms")
+            .arg(info.bpm)
+            .arg(info.key_string)
+            .arg(info.channels)
+            .arg(info.sample_rate)
+            .arg(QString::fromStdString(info.sample_format))
+            .arg(formatTime(info.duration_seconds))
+            .arg(info.consume_time_ms));
+
+    m_progressSlider->setEnabled(true);
+    m_totalDuration = info.duration_seconds;
+    m_progressSlider->setRange(0, 1000);
+    m_totalTimeLabel->setText(formatTime(info.duration_seconds));
+  } catch (const std::exception &e) {
     m_playPauseButton->setEnabled(false);
     m_audioInfoLabel->setText("错误: " + QString(e.what()));
   }
@@ -334,8 +339,9 @@ void MainWindow::onProgressSliderPressed() { m_isSliderPressed = true; }
 void MainWindow::onProgressSliderReleased() {
   m_isSliderPressed = false;
 
-  // 定位到新位置
-  if (m_player && m_totalDuration > 0) {
+  if (m_totalDuration > 0) {
+    double position = (double)m_progressSlider->value() * m_totalDuration;
+    m_player->seek(position);
   }
 }
 

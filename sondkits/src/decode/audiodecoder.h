@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decoder.h"
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 extern "C" {
@@ -8,6 +9,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
 }
+#include "common.h"
 
 class AudioDecoder : public DecoderInterface {
 public:
@@ -50,5 +52,7 @@ private:
   int m_target_channels;
   int m_target_sample_size;
   AVSampleFormat m_target_sample_format;
-  bool m_is_end;
+  std::atomic<bool> m_is_end;
+
+  SpinLock m_spin_lock;
 };

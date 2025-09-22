@@ -18,7 +18,7 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   m_audio_info_fetch = std::make_shared<FetchAudioInfo>();
   // decoder
   m_audio_decoder = std::make_shared<AudioDecoder>(
-    WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
+      WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
   m_audio_decoder->open(in_fpath);
 
   // audio play
@@ -116,4 +116,13 @@ AudioInfo AudioPlayer::fetchAudioInfo() {
     return m_audio_info_fetch->fetchAudioInfo(m_in_fpath);
   }
   return AudioInfo();
+}
+
+void AudioPlayer::seek(int64_t time_ms) {
+  if (m_audio_decoder) {
+    m_audio_decoder->seek(time_ms);
+  }
+  if (m_decode_queue) {
+    m_decode_queue->clear();
+  }
 }

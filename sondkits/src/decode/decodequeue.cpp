@@ -17,12 +17,6 @@ void DecodeQueue::start() {
   m_decode_thread = std::thread([this]() { decode_loop(); });
 }
 
-void DecodeQueue::restart() {
-  stop();
-  clear();
-  start();
-}
-
 void DecodeQueue::clear() {
   std::unique_lock<std::mutex> lock(m_mutex);
   m_frames.clear();
@@ -41,13 +35,15 @@ void DecodeQueue::stop() {
 bool DecodeQueue::aborted() { return m_abort.load(); }
 
 bool DecodeQueue::canRead() {
-    if(aborted()){return false;};
+  if (aborted()) {
+    return false;
+  };
   return !is_empty() || !is_decode_stopped();
 }
 
 int64_t DecodeQueue::readDataUntil(uint8_t *buffer, int64_t buffer_size) {
   int64_t readed = 0;
-  while (!canRead()) {
+  while (canRead()) {
     readed += readData(buffer + readed, buffer_size - readed);
     if (readed >= buffer_size) {
       break;
@@ -66,8 +62,9 @@ int64_t DecodeQueue::readData(uint8_t *buffer, int64_t buffer_size) {
     m_cv_read.wait(lock, [this]() -> bool {
       return aborted() || !is_empty() || is_decode_stopped();
     });
-    if(!canRead()){
-        return 0;
+    if (!canRead()) {
+      m_cv_decode.notify_all();
+      return 0;
     }
   }
 
@@ -120,6 +117,10 @@ FrameData DecodeQueue::pop() {
     m_cv_read.wait(lock, [this]() -> bool {
       return aborted() || !is_empty() || is_decode_stopped();
     });
+    if (!canRead()) {
+      m_cv_decode.notify_all();
+      return FrameData();
+    }
   }
   auto data = m_frames.front();
   m_frames.pop_front();
@@ -138,6 +139,10 @@ void DecodeQueue::push(FrameDataList &&items) {
       return;
     }
     m_cv_decode.wait(lock);
+    if (aborted()) {
+      m_cv_read.notify_all();
+      return;
+    }
   }
   for (auto &data : items) {
     m_datas_byte_size.fetch_add(data.size);

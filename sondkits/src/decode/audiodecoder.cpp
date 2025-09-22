@@ -123,7 +123,7 @@ AVSampleFormat AudioDecoder::sampleFormat() const {
   return m_dec_ctx->sample_fmt;
 }
 
-bool AudioDecoder::isEnd() const { return m_is_end; }
+bool AudioDecoder::isEnd() const { return m_is_end.load(); }
 
 void AudioDecoder::freeData(uint8_t **data) {
   if (!data || !*data) {
@@ -182,11 +182,13 @@ void AudioDecoder::initSwr() {
 FrameDataList AudioDecoder::decodeNextFrameData() {
   FrameDataList frame_data_list;
 
+  m_spin_lock.lock();
+
   while (true) {
     int ret = av_read_frame(m_fmt_ctx, m_packet);
     if (ret < 0) {
       if (ret == AVERROR_EOF) {
-        m_is_end = true;
+        m_is_end.store(true);
         // 刷新解码器，获取剩余帧
         if (avcodec_send_packet(m_dec_ctx, nullptr) >= 0) {
           while (avcodec_receive_frame(m_dec_ctx, m_frame) == 0) {
@@ -221,6 +223,8 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
       break;
     }
   }
+
+  m_spin_lock.unlock();
   return std::move(frame_data_list);
 }
 
@@ -280,12 +284,16 @@ void AudioDecoder::seek(int64_t time_ms) {
   if (!m_fmt_ctx) {
     return;
   }
+  m_spin_lock.lock();
   if (time_ms <= 0) {
     av_seek_frame(m_fmt_ctx, m_in_astream_idx, 0, AVSEEK_FLAG_BACKWARD);
   } else {
-    av_seek_frame(m_fmt_ctx, m_in_astream_idx, time_ms * AV_TIME_BASE / 1000,
-                  AVSEEK_FLAG_BACKWARD);
+    AVRational ms_timebase = {1, 1000}; // 毫秒时间基准
+    int64_t timestamp = av_rescale_q(
+        time_ms, ms_timebase, m_fmt_ctx->streams[m_in_astream_idx]->time_base);
+    av_seek_frame(m_fmt_ctx, m_in_astream_idx, timestamp, AVSEEK_FLAG_BACKWARD);
   }
-  m_is_end = false;
+  m_spin_lock.unlock();
+  m_is_end.store(false);
   avcodec_flush_buffers(m_dec_ctx);
 }

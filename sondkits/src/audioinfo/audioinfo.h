@@ -8,6 +8,7 @@ class AudioDecoder;
 struct AudioInfo {
   float bpm;
   int key;
+  std::string key_string;
   int channels;
   int sample_rate;
   int duration_seconds;
@@ -26,6 +27,7 @@ private:
   float detectBPMUseSoundtouch(std::shared_ptr<AudioDecoder> audio_decoder);
   float detectBPMUseAubio(std::shared_ptr<AudioDecoder> audio_decoder);
   float demo(std::shared_ptr<AudioDecoder> audio_decoder);
+  int demo2(std::shared_ptr<AudioDecoder> audio_decoder);
 
 private:
   std::atomic<bool> m_stoped;

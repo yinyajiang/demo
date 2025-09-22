@@ -22,7 +22,7 @@ public:
   void stop();
   bool isPlaying();
   int64_t duration();
-  int64_t seek(int64_t time_ms);
+  void seek(int64_t time_ms);
   void setVolume(float volume);
   void setVolumeBalance(float balance);
   void setTempo(float tempo);

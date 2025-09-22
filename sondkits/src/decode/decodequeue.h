@@ -21,7 +21,6 @@ public:
   void start();
   void stop();
   void clear();
-  void restart();
   FrameData pop();
   int64_t readData(uint8_t *data, int64_t size);
   int64_t readDataUntil(uint8_t *data, int64_t size);
