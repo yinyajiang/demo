@@ -71,6 +71,11 @@ if(WIN32)
         "${ffmpeg_base_path}/lib/swscale.lib"
         "${ffmpeg_base_path}/lib/swresample.lib"
     )
+
+    set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio")
+    target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
+    target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/aubio.lib")
+
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
         set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac-arm64")

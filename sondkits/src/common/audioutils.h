@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 
 class AudioDecoder;
 void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
