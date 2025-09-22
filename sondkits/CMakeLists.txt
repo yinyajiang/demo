@@ -61,7 +61,7 @@ install(TARGETS sondkits
 # FFmpeg
 # aubio
 if(WIN32)
-    set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared")
+    set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg")
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
     target_link_libraries(sondkits PRIVATE
         "${ffmpeg_base_path}/lib/avcodec.lib"
@@ -78,10 +78,10 @@ if(WIN32)
 
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
-        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac-arm64")
+        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac-arm64")
         set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac-arm64")
     else()
-        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-shared-mac")
+        set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg-mac")
         set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio-mac")
     endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
