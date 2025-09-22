@@ -17,10 +17,6 @@ int64_t DecodeDataSource::realReadData(uint8_t *data, int64_t maxlen) {
 
 bool DecodeDataSource::realIsEnd() const { return m_decode_queue->canRead(); }
 
-void DecodeDataSource::open() { m_decode_queue->start(); }
-
-void DecodeDataSource::close() { m_decode_queue->stop(); }
-
 int64_t DecodeDataSource::bytesAvailable() const {
   return m_decode_queue->bytesAvailable();
 }

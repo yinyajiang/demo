@@ -11,8 +11,6 @@ public:
                    int64_t frame_size,
                    std::shared_ptr<DecodeQueue> decode_queue);
 
-  void open() override;
-  void close() override;
   int64_t bytesAvailable() const override;
 
 protected:

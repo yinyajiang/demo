@@ -5,7 +5,12 @@
 
 FileDataSource::FileDataSource(std::shared_ptr<AudioFilter> audio_filter,
                                int64_t frame_size, const std::string &file_path)
-    : DataSource(audio_filter, frame_size), m_file(file_path.c_str()) {}
+    : DataSource(audio_filter, frame_size), m_file(file_path.c_str()) {
+
+      m_file.open(QIODevice::ReadOnly);
+    }
+
+FileDataSource::~FileDataSource() {m_file.close();}
 
 int64_t FileDataSource::realReadData(uint8_t *data, int64_t maxlen) {
   return m_file.read(reinterpret_cast<char *>(data), maxlen);
@@ -17,6 +22,3 @@ int64_t FileDataSource::bytesAvailable() const {
   return m_file.bytesAvailable();
 }
 
-void FileDataSource::open() { m_file.open(QIODevice::ReadOnly); }
-
-void FileDataSource::close() { m_file.close(); }

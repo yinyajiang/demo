@@ -9,8 +9,6 @@ public:
   MemoryDataSource(std::shared_ptr<AudioFilter> audio_filter,
                    int64_t frame_size, char *data, int size);
 
-  void open() override;
-  void close() override;
   int64_t bytesAvailable() const override;
 
 protected:

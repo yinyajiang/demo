@@ -17,11 +17,14 @@ AudioThroughFilter::~AudioThroughFilter() {}
 
 FilterProcessResult AudioThroughFilter::realProcess(uint8_t *input_data,
                                                     int64_t *input_size) {
+  if (!input_data || !input_size || *input_size <= 0 || m_hope_process_size <= 0) {
+    return AUDIO_PROCESS_RESULT_SUCCESS;
+  }
   auto data = input_data;
   auto total = m_used_cache_size + *input_size;
   auto count = total / m_hope_process_size;
   auto remain = total % m_hope_process_size;
-  for (int i = 0; i < count; ++i) {
+  for (int64_t i = 0; i < count; ++i) {
     if (m_used_cache_size > 0) {
       memcpy(m_cache.data() + m_used_cache_size, data,
              m_hope_process_size - m_used_cache_size);
@@ -52,11 +55,15 @@ void AudioThroughFilter::reciveRemaining(uint8_t *, int64_t *) {
     return;
   }
   if (m_auto_fill_in) {
+    if (m_cache.empty()) {
+      m_cache.resize(m_hope_process_size);
+    }
     memset(m_cache.data() + m_used_cache_size, 0,
-           m_cache.size() - m_used_cache_size);
-    m_used_cache_size = m_cache.size();
+           m_hope_process_size - m_used_cache_size);
+    throughSink(m_cache.data(), m_hope_process_size);
+  } else {
+    throughSink(m_cache.data(), m_used_cache_size);
   }
-  throughSink(m_cache.data(), m_hope_process_size);
   m_used_cache_size = 0;
 }
 

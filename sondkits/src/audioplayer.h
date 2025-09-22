@@ -8,6 +8,7 @@
 class AudioPlay;
 class AudioEffectsFilter;
 class AudioDecoder;
+class DecodeQueue;
 class AudioPlayer : public QObject {
   Q_OBJECT
 public:
@@ -27,14 +28,15 @@ public:
   void setTempo(float tempo);
   void setSemitone(int semitone);
 signals:
-  void signal_update_time(int64_t time_seconds);
-  void signal_play_finished();
+  void signalTimeProgress(int64_t time_seconds);
+  void signalPlayFinished();
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
   std::shared_ptr<AudioEffectsFilter> m_effects_filter;
   std::shared_ptr<AudioDecoder> m_audio_decoder;
   std::shared_ptr<FetchAudioInfo> m_audio_info_fetch;
+  std::shared_ptr<DecodeQueue> m_decode_queue;
   std::filesystem::path m_in_fpath;
   std::atomic<bool> m_stoped;
 };

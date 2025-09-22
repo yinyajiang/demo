@@ -14,6 +14,8 @@ FetchAudioInfo::FetchAudioInfo() : m_stoped(false) {}
 
 FetchAudioInfo::~FetchAudioInfo() {}
 
+void FetchAudioInfo::stop() { m_stoped.store(true); }
+
 AudioInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath) {
   m_stoped.store(false);
   AudioInfo info;
@@ -21,7 +23,7 @@ AudioInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath) {
   auto start_time = std::chrono::high_resolution_clock::now();
 
   auto audio_decoder =
-      std::make_shared<AudioDecoder>(DEFAULT_SAMPLE_RATE, 1, AV_SAMPLE_FMT_FLT);
+      std::make_shared<AudioDecoder>(WORKING_SAMPLE_RATE, 1, AV_SAMPLE_FMT_FLT);
   audio_decoder->open(in_fpath);
 
 #if USE_AUBIO_BPM

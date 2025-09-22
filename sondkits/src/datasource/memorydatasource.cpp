@@ -26,6 +26,3 @@ bool MemoryDataSource::realIsEnd() const { return m_pos >= m_size; }
 
 int64_t MemoryDataSource::bytesAvailable() const { return m_size - m_pos; }
 
-void MemoryDataSource::open() { m_pos = 0; }
-
-void MemoryDataSource::close() { m_pos = 0; }

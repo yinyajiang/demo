@@ -18,7 +18,7 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   m_audio_info_fetch = std::make_shared<FetchAudioInfo>();
   // decoder
   m_audio_decoder = std::make_shared<AudioDecoder>(
-      DEFAULT_SAMPLE_RATE, DEFAULT_CHANNELS, DEFAULT_SAMPLE_AV_FORMAT);
+    WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
   m_audio_decoder->open(in_fpath);
 
   // audio play
@@ -51,12 +51,12 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   m_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
   // decode queue
-  auto decode_queue = std::make_shared<DecodeQueue>(m_audio_decoder);
+  m_decode_queue = std::make_shared<DecodeQueue>(m_audio_decoder);
+  m_decode_queue->start();
 
   // data source
   auto data_source = std::make_shared<DecodeDataSource>(
-      m_effects_filter, audio_format.bytesPerFrame(), decode_queue);
-  data_source->open();
+      m_effects_filter, audio_format.bytesPerFrame(), m_decode_queue);
 
   m_audio_play = std::make_unique<AudioPlay>(audio_format, data_source, this);
 }
@@ -79,8 +79,14 @@ void AudioPlayer::stop() {
   if (m_audio_play) {
     m_audio_play->stop();
   }
+  if (m_audio_decoder) {
+    m_audio_decoder->close();
+  }
   if (m_audio_info_fetch) {
     m_audio_info_fetch->stop();
+  }
+  if (m_decode_queue) {
+    m_decode_queue->stop();
   }
 }
 

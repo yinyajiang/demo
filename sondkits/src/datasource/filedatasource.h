@@ -9,9 +9,8 @@ class FileDataSource : public DataSource {
 public:
   FileDataSource(std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size,
                  const std::string &file_path);
+  ~FileDataSource();
 
-  void open() override;
-  void close() override;
   int64_t bytesAvailable() const override;
 
 protected:

@@ -8,8 +8,6 @@ class DataSource {
 public:
   DataSource(std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size);
   virtual ~DataSource() = default;
-  virtual void open() = 0;
-  virtual void close() = 0;
   virtual int64_t bytesAvailable() const = 0;
   int64_t readData(uint8_t *data, int64_t size);
   // todo: filter is end ?
