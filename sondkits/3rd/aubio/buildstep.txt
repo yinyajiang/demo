@@ -1,0 +1,9 @@
+1. git clone https://github.com/aubio/aubio.git
+2. cd aubio
+3. conda activate py39
+4. ./scripts/get_waf.sh
+5. set CC=D:\vs2022\VC\Tools\MSVC\14.41.34120\bin\HostX64\x64\cl.exe
+   set CXX=D:\vs2022\VC\Tools\MSVC\14.41.34120\bin\HostX64\x64\cl.exe
+6. python waf configure --check-c-compiler=msvc
+7. python waf configure
+8. python waf
