@@ -3,9 +3,8 @@
 #include <QFile>
 #include <QtGlobal>
 
-FileDataSource::FileDataSource(std::shared_ptr<AudioFilter> audio_filter,
-                               int64_t frame_size, const std::string &file_path)
-    : DataSource(audio_filter, frame_size), m_file(file_path.c_str()) {
+FileDataSource::FileDataSource(int64_t frame_size, const std::string &file_path)
+    : DataSource(frame_size), m_file(file_path.c_str()) {
 
       m_file.open(QIODevice::ReadOnly);
     }
@@ -21,4 +20,6 @@ bool FileDataSource::realIsEnd() const { return m_file.atEnd(); }
 int64_t FileDataSource::bytesAvailable() const {
   return m_file.bytesAvailable();
 }
+
+
 

@@ -4,9 +4,8 @@
 #include <QtGlobal>
 #include <cstring>
 
-MemoryDataSource::MemoryDataSource(std::shared_ptr<AudioFilter> audio_filter,
-                                   int64_t frame_size, char *data, int size)
-    : DataSource(audio_filter, frame_size), m_data(data), m_size(size),
+MemoryDataSource::MemoryDataSource(int64_t frame_size, char *data, int size)
+    : DataSource(frame_size), m_data(data), m_size(size),
       m_pos(0) {}
 
 int64_t MemoryDataSource::realReadData(uint8_t *data, int64_t maxlen) {

@@ -7,8 +7,7 @@
 
 class DecodeDataSource : public DataSource {
 public:
-  DecodeDataSource(std::shared_ptr<AudioFilter> audio_filter,
-                   int64_t frame_size,
+  DecodeDataSource(int64_t frame_size,
                    std::shared_ptr<DecodeQueue> decode_queue);
 
   int64_t bytesAvailable() const override;
@@ -16,6 +15,7 @@ public:
 protected:
   int64_t realReadData(uint8_t *data, int64_t maxlen) override;
   bool realIsEnd() const override;
+  void realClear() override;
 
 private:
   std::shared_ptr<DecodeQueue> m_decode_queue;

@@ -55,10 +55,11 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
   m_decode_queue->start();
 
   // data source
-  auto data_source = std::make_shared<DecodeDataSource>(
-      m_effects_filter, audio_format.bytesPerFrame(), m_decode_queue);
+  m_data_source = std::make_shared<DecodeDataSource>(
+      audio_format.bytesPerFrame(), m_decode_queue);
+  m_data_source->addFilter(m_effects_filter);
 
-  m_audio_play = std::make_unique<AudioPlay>(audio_format, data_source, this);
+  m_audio_play = std::make_unique<AudioPlay>(audio_format, m_data_source, this);
 }
 
 void AudioPlayer::play() {
@@ -122,7 +123,7 @@ void AudioPlayer::seek(int64_t time_ms) {
   if (m_audio_decoder) {
     m_audio_decoder->seek(time_ms);
   }
-  if (m_decode_queue) {
-    m_decode_queue->clear();
+  if (m_data_source) {
+    m_data_source->clear();
   }
 }

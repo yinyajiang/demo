@@ -9,6 +9,7 @@ class AudioPlay;
 class AudioEffectsFilter;
 class AudioDecoder;
 class DecodeQueue;
+class DataSource;
 class AudioPlayer : public QObject {
   Q_OBJECT
 public:
@@ -37,6 +38,7 @@ private:
   std::shared_ptr<AudioDecoder> m_audio_decoder;
   std::shared_ptr<FetchAudioInfo> m_audio_info_fetch;
   std::shared_ptr<DecodeQueue> m_decode_queue;
+  std::shared_ptr<DataSource> m_data_source;
   std::filesystem::path m_in_fpath;
   std::atomic<bool> m_stoped;
 };

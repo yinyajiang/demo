@@ -63,7 +63,8 @@ float FetchAudioInfo::detectBPM(
   decode_queue->start();
 
   auto bpm_filter = std::make_shared<BPMFilter>(audio_decoder);
-  DecodeDataSource source(bpm_filter, frame_size, decode_queue);
+  DecodeDataSource source(frame_size, decode_queue);
+  source.addFilter(bpm_filter);
   source.consumeAll();
   decode_queue->stop();
   return bpm_filter->getBPM();
@@ -81,7 +82,8 @@ int FetchAudioInfo::detectKey(std::shared_ptr<AudioDecoder> audio_decoder) {
   decode_queue->start();
 
   auto key_filter = std::make_shared<KeyFilter>(audio_decoder);
-  DecodeDataSource source(key_filter, frame_size, decode_queue);
+  DecodeDataSource source(frame_size, decode_queue);
+  source.addFilter(key_filter);
   source.consumeAll();
 
   auto key = key_filter->getKey();

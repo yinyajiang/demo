@@ -7,7 +7,7 @@
 
 class FileDataSource : public DataSource {
 public:
-  FileDataSource(std::shared_ptr<AudioFilter> audio_filter, int64_t frame_size,
+  FileDataSource(int64_t frame_size,
                  const std::string &file_path);
   ~FileDataSource();
 
@@ -16,6 +16,7 @@ public:
 protected:
   int64_t realReadData(uint8_t *data, int64_t size) override;
   bool realIsEnd() const override;
+  void realClear() override{};
 
 private:
   QFile m_file;

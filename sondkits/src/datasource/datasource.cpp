@@ -3,11 +3,23 @@
 #include <QFile>
 #include <QtGlobal>
 
-DataSource::DataSource(std::shared_ptr<AudioFilter> audio_filter,
-                       int64_t frame_size)
-    : m_audio_filter(audio_filter), m_frame_size(frame_size) {}
+DataSource::DataSource(int64_t frame_size)
+    : m_frame_size(frame_size), m_aborted(false) {}
 
-bool DataSource::isEnd() { return realIsEnd() && filterIsFlushed(0); }
+void DataSource::addFilter(std::shared_ptr<AudioFilter> filter) {
+  m_audio_filters.push_back(filter);
+}
+
+void DataSource::abort() { m_aborted = true; }
+
+void DataSource::clear() {
+  realClear();
+  for (auto &filter : m_audio_filters) {
+    filter->clear();
+  }
+}
+
+bool DataSource::isEnd() { return m_aborted || (realIsEnd() && filterIsFlushed(0)); }
 
 void DataSource::consumeAll() {
   std::vector<uint8_t> buffer(m_frame_size * 1024);
@@ -28,15 +40,14 @@ int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
   }
 
   int64_t r = 0;
-  while (1) {
+  while (!m_aborted) {
     r = realReadData(data, max_size);
-    if (m_audio_filter) {
+    if (!m_audio_filters.empty()) {
       if (r == 0) {
-        auto remain_size = m_audio_filter->flushRemaining();
-        r = std::min(remain_size, max_size);
-        m_audio_filter->reciveRemaining(data, &r);
+        r = max_size;
+        filterFlushReceiveRemaining(findNoFlushedFilterIndex(),data, &r);
       } else {
-        auto result = m_audio_filter->process(data, &r);
+        auto result = filterProcess(findNoFlushedFilterIndex(),data, &r);
         if (result == AUDIO_PROCESS_RESULT_AGAIN) {
           continue;
         }
@@ -47,7 +58,6 @@ int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
     }
     break;
   }
-
   return r;
 }
 
@@ -69,11 +79,15 @@ FilterProcessResult DataSource::filterProcess(int start_filter_index,
 
 FilterProcessResult
 DataSource::filterFlushReceiveRemaining(int start_filter_index, uint8_t *data,
-                                       int64_t *size) {
-  if (start_filter_index >= m_audio_filters.size()) {
+                                        int64_t *size) {
+  if (m_aborted) {
     return AUDIO_PROCESS_RESULT_SUCCESS;
   }
   int64_t buffer_size = *size;
+  *size = 0; // output size
+  if (start_filter_index >= m_audio_filters.size() || start_filter_index < 0) {
+    return AUDIO_PROCESS_RESULT_SUCCESS;
+  }
 
   auto &filter = m_audio_filters[start_filter_index];
   auto remain = filter->flushRemaining();
@@ -81,6 +95,8 @@ DataSource::filterFlushReceiveRemaining(int start_filter_index, uint8_t *data,
     *size = buffer_size;
     return filterFlushReceiveRemaining(start_filter_index + 1, data, size);
   }
+
+  *size = buffer_size;
   filter->reciveRemaining(data, size);
   if (*size == 0) {
     *size = buffer_size;
@@ -100,7 +116,7 @@ DataSource::filterFlushReceiveRemaining(int start_filter_index, uint8_t *data,
 }
 
 bool DataSource::filterIsFlushed(int start_filter_index) {
-  if (start_filter_index >= m_audio_filters.size()) {
+  if (start_filter_index >= m_audio_filters.size() || start_filter_index < 0) {
     return true;
   }
   for (auto filter_index = start_filter_index;
@@ -111,4 +127,14 @@ bool DataSource::filterIsFlushed(int start_filter_index) {
     }
   }
   return true;
+}
+
+int DataSource::findNoFlushedFilterIndex() {
+  for (auto filter_index = 0; filter_index < m_audio_filters.size(); ++filter_index) {
+    auto &filter = m_audio_filters[filter_index];
+    if (!filter->isFlushed()) {
+      return filter_index;
+    }
+  }
+  return -1;
 }
