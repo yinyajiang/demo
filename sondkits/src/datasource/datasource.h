@@ -19,7 +19,7 @@ protected:
 
   FilterProcessResult filterProcess(int start_filter_index, uint8_t *data,
                                     int64_t *size);
-  FilterProcessResult filterFlushReciveRemaining(int start_filter_index,
+  FilterProcessResult filterFlushReceiveRemaining(int start_filter_index,
                                                  uint8_t *data, int64_t *size);
   bool filterIsFlushed(int start_filter_index);
 

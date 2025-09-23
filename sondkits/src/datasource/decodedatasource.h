@@ -14,7 +14,7 @@ public:
   int64_t bytesAvailable() const override;
 
 protected:
-  int64_t realReadData(uint8_t *data, int64_t size) override;
+  int64_t realReadData(uint8_t *data, int64_t maxlen) override;
   bool realIsEnd() const override;
 
 private:

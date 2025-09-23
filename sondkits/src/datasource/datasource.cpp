@@ -68,7 +68,7 @@ FilterProcessResult DataSource::filterProcess(int start_filter_index,
 }
 
 FilterProcessResult
-DataSource::filterFlushReciveRemaining(int start_filter_index, uint8_t *data,
+DataSource::filterFlushReceiveRemaining(int start_filter_index, uint8_t *data,
                                        int64_t *size) {
   if (start_filter_index >= m_audio_filters.size()) {
     return AUDIO_PROCESS_RESULT_SUCCESS;
@@ -79,12 +79,12 @@ DataSource::filterFlushReciveRemaining(int start_filter_index, uint8_t *data,
   auto remain = filter->flushRemaining();
   if (remain == 0) {
     *size = buffer_size;
-    return filterFlushReciveRemaining(start_filter_index + 1, data, size);
+    return filterFlushReceiveRemaining(start_filter_index + 1, data, size);
   }
   filter->reciveRemaining(data, size);
   if (*size == 0) {
     *size = buffer_size;
-    return filterFlushReciveRemaining(start_filter_index + 1, data, size);
+    return filterFlushReceiveRemaining(start_filter_index + 1, data, size);
   }
   if (start_filter_index == m_audio_filters.size() - 1) { // 最后一个
     return AUDIO_PROCESS_RESULT_SUCCESS;
@@ -94,7 +94,7 @@ DataSource::filterFlushReciveRemaining(int start_filter_index, uint8_t *data,
   auto result = filterProcess(next_filter, data, size);
   if (result == AUDIO_PROCESS_RESULT_AGAIN) {
     *size = buffer_size;
-    return filterFlushReciveRemaining(next_filter, data, size);
+    return filterFlushReceiveRemaining(next_filter, data, size);
   }
   return result;
 }

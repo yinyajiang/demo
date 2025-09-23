@@ -20,14 +20,12 @@ class FetchAudioInfo {
 public:
   FetchAudioInfo();
   ~FetchAudioInfo();
-  void stop();
+  void abort();
   AudioInfo fetchAudioInfo(std::filesystem::path in_fpath);
 
 private:
-  float detectBPMUseSoundtouch(std::shared_ptr<AudioDecoder> audio_decoder);
-  float detectBPMUseAubio(std::shared_ptr<AudioDecoder> audio_decoder);
-  float demo(std::shared_ptr<AudioDecoder> audio_decoder);
-  int demo2(std::shared_ptr<AudioDecoder> audio_decoder);
+  float detectBPM(std::shared_ptr<AudioDecoder> audio_decoder);
+  int detectKey(std::shared_ptr<AudioDecoder> audio_decoder);
 
 private:
   std::atomic<bool> m_stoped;

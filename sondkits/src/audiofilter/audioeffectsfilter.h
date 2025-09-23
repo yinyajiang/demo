@@ -38,6 +38,7 @@ public:
   void setSemitone(int semitone);
 
   void reciveRemaining(uint8_t *data, int64_t *size) override;
+  void clear() override;
 
 protected:
   int64_t realFlushRemaining() override;

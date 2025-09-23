@@ -24,6 +24,7 @@ public:
   }
   virtual void reciveRemaining(uint8_t *data, int64_t *size) = 0;
   bool isFlushed() { return m_flushed; }
+  virtual void clear() = 0;
 
 protected:
   virtual int64_t realFlushRemaining() = 0;

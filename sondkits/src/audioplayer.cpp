@@ -83,7 +83,7 @@ void AudioPlayer::stop() {
     m_audio_decoder->close();
   }
   if (m_audio_info_fetch) {
-    m_audio_info_fetch->stop();
+    m_audio_info_fetch->abort();
   }
   if (m_decode_queue) {
     m_decode_queue->stop();

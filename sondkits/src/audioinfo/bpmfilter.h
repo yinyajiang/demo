@@ -11,9 +11,9 @@ class BPMFilter: public AudioThroughFilter {
 public:
     BPMFilter(std::shared_ptr<AudioDecoder> audio_decoder);
     ~BPMFilter();
-    virtual void throughSink(uint8_t *data, int64_t size) override;
+    void throughSink(uint8_t *data, int64_t size) override;
     float getBPM() const { return aubio_tempo_get_bpm(m_tempo); }
-
+    void clear() override{};
 private:
     void reset();
 protected:

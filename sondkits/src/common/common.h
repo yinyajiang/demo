@@ -8,7 +8,6 @@
 // ffplay -f f32le -ar 44100 -ch_layout stereo decode.pcm
 
 #define PRINT_CONSUME_TIME 0
-#define USE_AUBIO_BPM 1
 #define WORKING_SAMPLE_RATE 44100
 #define WORKING_CHANNELS 2
 #define WORKING_SAMPLE_AV_FORMAT AV_SAMPLE_FMT_FLT

@@ -14,8 +14,10 @@ public:
   ~AudioThroughFilter();
 
   void reciveRemaining(uint8_t *, int64_t *) override;
+  void clear() override{};
 
   int64_t hopeProcessSize() const { return m_hope_process_size; }
+
 
 protected:
   virtual void throughSink(uint8_t *data, int64_t size);

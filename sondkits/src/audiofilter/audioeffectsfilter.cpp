@@ -27,6 +27,8 @@ float AudioEffectsFilter::volume(int channel_num) {
   if (channel_num == -1) {
     return m_volume.load();
   }
+  if (channel_num >= m_config.channels)
+    return 0.0f;
   return m_channels_volumes[channel_num].load();
 }
 
@@ -47,11 +49,17 @@ void AudioEffectsFilter::setTempo(float tempo) {
     return;
   if (tempo > m_config.max_tempo)
     tempo = m_config.max_tempo;
+  if (tempo < m_config.min_tempo)
+    tempo = m_config.min_tempo;
   m_tempo = tempo;
   newSoundTouch();
 }
 
 void AudioEffectsFilter::setSemitone(int semitone) {
+  if (semitone > 12)
+    semitone = 12;
+  if (semitone < -12)
+    semitone = -12;
   m_semitone = semitone;
   newSoundTouch();
 }
@@ -97,6 +105,14 @@ void AudioEffectsFilter::reciveRemaining(uint8_t *data, int64_t *size) {
     auto num = m_soundtouch->receiveSamples(
         reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
     *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
+  }
+}
+
+void AudioEffectsFilter::clear() {
+  std::unique_lock<SpinLock> lock(m_sound_touch_lock);
+  if (m_soundtouch) {
+    m_soundtouch->clear();
+    m_soundtouch_flushed = true;
   }
 }
 
