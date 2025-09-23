@@ -138,9 +138,10 @@ void AudioPlay::setPlayedPositionMs(int64_t position_ms) {
 int64_t AudioPlay::getPlayedPositionMs() const {
   int64_t bytes_per_second =
       m_audio_format.bytesPerFrame() * m_audio_format.sampleRate();
+  int64_t position_ms = 0;
   if (bytes_per_second > 0) {
     int64_t played_bytes = m_pcm_source->getIOdevicePlayedBytes();
-    return played_bytes * 1000 / bytes_per_second;
+    position_ms = played_bytes * 1000 / bytes_per_second;
   }
-  return 0;
+  return position_ms;
 }

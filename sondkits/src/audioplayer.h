@@ -50,4 +50,5 @@ private:
   std::atomic<bool> m_stoped;
 
   QTimer m_update_timer;
+  int64_t m_max_duration_ms;
 };

@@ -17,11 +17,14 @@ void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
   m_stoped.store(false);
 
   // decoder
+  m_max_duration_ms = 0;
   for (const auto &in_fpath : in_fpaths) {
     auto audio_decoder = std::make_shared<AudioDecoder>(
         WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
     audio_decoder->open(in_fpath);
     m_audio_decoders.push_back(audio_decoder);
+    m_max_duration_ms =
+        std::max(m_max_duration_ms, audio_decoder->durationSecond() * 1000);
   }
 
   // audio play
@@ -152,5 +155,8 @@ void AudioPlayer::seek(int64_t time_ms) {
 
 void AudioPlayer::onUpdateTimerTimeout() {
   auto played_position_ms = m_audio_play->getPlayedPositionMs();
+  if (played_position_ms > m_max_duration_ms) {
+    played_position_ms = m_max_duration_ms;
+  }
   emit signalTimeProgress(played_position_ms / 1000);
 }

@@ -14,10 +14,8 @@ AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
     : m_fmt_ctx(nullptr), m_dec_ctx(nullptr), m_swr_ctx(nullptr),
       m_in_astream_idx(-1), m_target_sample_rate(target_sample_rate),
       m_target_channels(target_channels),
-      m_target_sample_format(target_sample_format),
-      m_target_sample_size(0),
-      m_is_end(false),
-      m_packet(nullptr), m_frame(nullptr) {
+      m_target_sample_format(target_sample_format), m_target_sample_size(0),
+      m_is_end(false), m_packet(nullptr), m_frame(nullptr) {
   assert(av_sample_fmt_is_planar(target_sample_format) == 0);
 }
 
@@ -27,8 +25,8 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   std::unique_lock<SpinLock> lock(m_lock);
 
   int ret = 0;
-  if ((ret = avformat_open_input(&m_fmt_ctx, fs2u8(in_fpath).c_str(),
-                                 nullptr, nullptr)) < 0) {
+  if ((ret = avformat_open_input(&m_fmt_ctx, fs2u8(in_fpath).c_str(), nullptr,
+                                 nullptr)) < 0) {
     throw std::runtime_error("[avformat_open_input]Could not open input file:" +
                              avErr2String(ret));
   }
@@ -85,7 +83,6 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   m_sample_format = m_dec_ctx->sample_fmt;
   m_duration = m_fmt_ctx->duration;
 
-
   if (m_packet == nullptr) {
     m_packet = av_packet_alloc();
   }
@@ -113,8 +110,8 @@ AVCodecContext *AudioDecoder::codecCtx() const { return m_dec_ctx; }
 
 int AudioDecoder::audioStreamIndex() const { return m_in_astream_idx; }
 
-double AudioDecoder::duration() const {
-  return double(m_duration) / AV_TIME_BASE;
+int64_t AudioDecoder::durationSecond() const {
+  return int64_t(m_duration / AV_TIME_BASE);
 }
 
 int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
@@ -129,9 +126,7 @@ int AudioDecoder::sampleRate() const { return m_sample_rate; }
 
 int AudioDecoder::channels() const { return m_channels; }
 
-AVSampleFormat AudioDecoder::sampleFormat() const {
-  return m_sample_format;
-}
+AVSampleFormat AudioDecoder::sampleFormat() const { return m_sample_format; }
 
 bool AudioDecoder::isEnd() const { return m_is_end.load(); }
 
@@ -297,33 +292,38 @@ FrameData AudioDecoder::resampleFrame(AVFrame *frame) {
 
 void AudioDecoder::seek(int64_t time_ms) {
   if (!m_fmt_ctx || !m_dec_ctx || m_in_astream_idx < 0) {
-    std::cerr << "Error: Cannot seek, decoder not properly initialized" << std::endl;
+    std::cerr << "Error: Cannot seek, decoder not properly initialized"
+              << std::endl;
     return;
   }
-  if (time_ms > duration() * 1000) {
-    std::cerr << "Error: Cannot seek, time_ms is greater than duration" << std::endl;
+  if (time_ms > durationSecond() * 1000) {
+    std::cerr << "Error: Cannot seek, time_ms is greater than duration"
+              << std::endl;
     return;
   }
-  
+
   std::unique_lock<SpinLock> lock(m_lock);
-  
+
   int ret = 0;
   if (time_ms <= 0) {
     ret = av_seek_frame(m_fmt_ctx, m_in_astream_idx, 0, AVSEEK_FLAG_BACKWARD);
   } else {
     int64_t timestamp = 0;
     if (m_fmt_ctx->streams[m_in_astream_idx]->time_base.den != 0) {
-      timestamp = av_rescale_q(time_ms, AVRational{1, 1000}, m_fmt_ctx->streams[m_in_astream_idx]->time_base);
+      timestamp = av_rescale_q(time_ms, AVRational{1, 1000},
+                               m_fmt_ctx->streams[m_in_astream_idx]->time_base);
     } else {
       timestamp = time_ms * AV_TIME_BASE / 1000;
     }
-    ret = av_seek_frame(m_fmt_ctx, m_in_astream_idx, timestamp, AVSEEK_FLAG_BACKWARD);
+    ret = av_seek_frame(m_fmt_ctx, m_in_astream_idx, timestamp,
+                        AVSEEK_FLAG_BACKWARD);
   }
-  
+
   if (ret < 0) {
-    std::cerr << "Error seeking to position " << time_ms << "ms: " << avErr2String(ret) << std::endl;
+    std::cerr << "Error seeking to position " << time_ms
+              << "ms: " << avErr2String(ret) << std::endl;
   }
-  
+
   m_is_end.store(false);
   avcodec_flush_buffers(m_dec_ctx);
   flushSwr(false);
@@ -334,12 +334,12 @@ FrameData AudioDecoder::flushSwr(bool return_flush) {
   if (!m_swr_ctx) {
     return FrameData{nullptr, 0};
   }
-  
+
   int64_t delay = swr_get_delay(m_swr_ctx, m_target_sample_rate);
   if (delay <= 0) {
     return FrameData{nullptr, 0};
   }
-  
+
   int out_samples = (int)delay;
   uint8_t **audio_data = nullptr;
   int linesize;
@@ -349,7 +349,7 @@ FrameData AudioDecoder::flushSwr(bool return_flush) {
   if (ret < 0) {
     return FrameData{nullptr, 0};
   }
-  
+
   int num = swr_convert(m_swr_ctx, audio_data, out_samples, nullptr, 0);
   if (num <= 0) {
     if (audio_data) {
@@ -358,7 +358,7 @@ FrameData AudioDecoder::flushSwr(bool return_flush) {
     }
     return FrameData{nullptr, 0};
   }
-  
+
   int size = av_samples_get_buffer_size(&linesize, m_target_channels, num,
                                         m_target_sample_format, 1);
   if (return_flush) {

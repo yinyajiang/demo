@@ -26,7 +26,7 @@ public:
   AVFormatContext *fmtCtx() const;
   AVCodecContext *codecCtx() const;
   int audioStreamIndex() const;
-  double duration() const;
+  int64_t durationSecond() const;
   int targetSampleRate() const;
   int targetChannels() const;
   AVSampleFormat targetSampleFormat() const;
