@@ -5,6 +5,16 @@
 #include <filesystem>
 #include <memory>
 
+#ifdef _WIN32
+#ifdef SOUNDKITS_EXPORTS
+#define SOUNDKITS_API __declspec(dllexport)
+#else
+#define SOUNDKITS_API __declspec(dllimport)
+#endif
+#else
+#define SOUNDKITS_API
+#endif
+
 struct AudioInfo {
   float bpm;
   int key;
@@ -22,14 +32,15 @@ class AudioDecoder;
 class DecodeQueue;
 class DataSource;
 class ComposeDataSource;
-class AudioPlayer : public QObject {
+
+class SOUNDKITS_API AudioPlayer : public QObject {
   Q_OBJECT
 public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  static AudioInfo fetchAudioInfo(std::filesystem::path fpath);
-  void open(const std::vector<std::filesystem::path> &in_fpaths);
+  static SOUNDKITS_API AudioInfo fetchAudioInfo(QString fpath);
+  void open(const std::vector<QString> &in_fpaths);
   void play();
   void pause();
   void stop();

@@ -269,13 +269,13 @@ void MainWindow::onOpenFile2() {
 }
 
 void MainWindow::onOpenFile() {
-  std::vector<std::filesystem::path> filePaths;
-  filePaths.push_back(m_fileLabel1->text().toStdWString());
-  filePaths.push_back(m_fileLabel2->text().toStdWString());
+  std::vector<QString> filePaths;
+  filePaths.push_back(m_fileLabel1->text());
+  filePaths.push_back(m_fileLabel2->text());
   try {
     m_player->open(filePaths);
     m_playPauseButton->setEnabled(true);
-    auto info = m_player->fetchAudioInfo(filePaths[0]);
+    auto info = m_player->fetchAudioInfo(m_fileLabel1->text());
     m_audioInfoLabel->setText(
         QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5,\r\n "
                 "时长: %6, 耗时: %7ms")

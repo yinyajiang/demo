@@ -15,13 +15,16 @@ AudioPlayer::AudioPlayer(QObject *parent)
 
 AudioPlayer::~AudioPlayer() {}
 
-void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
-  m_in_fpaths = in_fpaths;
+void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
+  m_in_fpaths.clear();
+  for (const auto &f : in_fpaths_) {
+    m_in_fpaths.push_back(f.toStdWString());
+  }
   m_stoped.store(false);
 
   // decoder
   m_max_duration_ms = 0;
-  for (const auto &in_fpath : in_fpaths) {
+  for (const auto &in_fpath : m_in_fpaths) {
     auto audio_decoder = std::make_shared<AudioDecoder>(
         WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
     audio_decoder->open(in_fpath);
@@ -136,9 +139,9 @@ void AudioPlayer::setSemitone(int semitone) {
   m_effects_filter->setSemitone(semitone);
 }
 
-AudioInfo AudioPlayer::fetchAudioInfo(std::filesystem::path fpath) {
+AudioInfo AudioPlayer::fetchAudioInfo(QString fpath) {
   FetchAudioInfo fetch_audio_info;
-  auto info = fetch_audio_info.fetchAudioInfo(fpath);
+  auto info = fetch_audio_info.fetchAudioInfo(fpath.toStdWString());
   AudioInfo audio_info;
   audio_info.bpm = info.bpm;
   audio_info.key = info.key;
