@@ -8,7 +8,8 @@
 
 PCMDataSourceDevice::PCMDataSourceDevice(
     std::shared_ptr<DataSource> data_source, QObject *parent)
-    : QIODevice(parent), m_data_source(data_source) {
+    : QIODevice(parent), m_data_source(data_source),
+      m_iodevice_played_bytes(0) {
   open(QIODevice::ReadOnly);
 }
 
@@ -23,6 +24,11 @@ qint64 PCMDataSourceDevice::readData(char *data, qint64 size) {
       std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   qDebug() << "### readData duration: " << duration.count() << "us";
 #endif
+
+  if (ret > 0) {
+    m_iodevice_played_bytes.fetch_add(ret);
+  }
+
   return ret;
 }
 bool PCMDataSourceDevice::atEnd() const { return m_data_source->isEnd(); }
@@ -31,6 +37,14 @@ qint64 PCMDataSourceDevice::bytesAvailable() const {
 }
 
 qint64 PCMDataSourceDevice::writeData(const char *, qint64) { return -1; }
+
+void PCMDataSourceDevice::setIODevicePlayedBytes(qint64 bytes) {
+  m_iodevice_played_bytes.store(bytes);
+}
+
+qint64 PCMDataSourceDevice::getIOdevicePlayedBytes() const {
+  return m_iodevice_played_bytes.load();
+}
 
 AudioPlay::AudioPlay(QAudioFormat audio_format,
                      std::shared_ptr<DataSource> source, QObject *parent)
@@ -108,4 +122,25 @@ void AudioPlay::saveAsPCMFile(const std::filesystem::path &file_path) {
   }
   file.close();
   qDebug() << "### Saved PCM file: " << file_path.string();
+}
+
+void AudioPlay::setPlayedPositionMs(int64_t position_ms) {
+  auto bytes_per_second =
+      m_audio_format.bytesPerFrame() * m_audio_format.sampleRate();
+
+  int64_t target_bytes =
+      static_cast<int64_t>(position_ms * bytes_per_second / 1000);
+  if (m_pcm_source) {
+    m_pcm_source->setIODevicePlayedBytes(target_bytes);
+  }
+}
+
+int64_t AudioPlay::getPlayedPositionMs() const {
+  int64_t bytes_per_second =
+      m_audio_format.bytesPerFrame() * m_audio_format.sampleRate();
+  if (bytes_per_second > 0) {
+    int64_t played_bytes = m_pcm_source->getIOdevicePlayedBytes();
+    return played_bytes * 1000 / bytes_per_second;
+  }
+  return 0;
 }

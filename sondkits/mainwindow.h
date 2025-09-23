@@ -29,7 +29,6 @@ private slots:
   void onOpenFile1();
   void onOpenFile();
 
-
   void playPause();
   void stop();
   void onVolumeChanged(int volume);
@@ -40,7 +39,7 @@ private slots:
   void onProgressSliderMoved(int value);
   void onPlayerStateChanged();
   void onDecoderError(const QString &message);
-  void updatePlayback();
+  void onTimeProgress(int64_t time_seconds);
   void onSemitoneChanged(int semitone);
 
 private:
@@ -89,9 +88,6 @@ private:
 
   // 音频处理
   std::unique_ptr<AudioPlayer> m_player;
-
-  // 定时器
-  QTimer *m_updateTimer;
 
   // 状态
   QString m_currentFile;

@@ -5,6 +5,9 @@
 #include <QtMultimedia/QAudioDevice>
 #include <QtMultimedia/QAudioSink>
 #include <QtMultimedia/QMediaDevices>
+#include <atomic>
+#include <chrono>
+#include <functional>
 #include <memory>
 
 class PCMDataSourceDevice;
@@ -23,6 +26,9 @@ public:
   void setSinkVoulme(float volume);
   float sinkVolume();
   void saveAsPCMFile(const std::filesystem::path &file_path);
+
+  void setPlayedPositionMs(int64_t position_ms);
+  int64_t getPlayedPositionMs() const;
 
 protected slots:
   void on_state_changed();
@@ -47,6 +53,10 @@ public:
 
   qint64 writeData(const char *, qint64) override;
 
+  void setIODevicePlayedBytes(qint64 bytes);
+  qint64 getIOdevicePlayedBytes() const;
+
 private:
   std::shared_ptr<DataSource> m_data_source;
+  std::atomic<qint64> m_iodevice_played_bytes; // 总共读取的字节数
 };

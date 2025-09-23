@@ -6,29 +6,23 @@
 #include <QtWidgets/QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), m_player(nullptr), m_updateTimer(nullptr),
-      m_isPlaying(false), m_isSliderPressed(false), m_totalDuration(0.0) {
+    : QMainWindow(parent), m_player(nullptr), m_isPlaying(false),
+      m_isSliderPressed(false), m_totalDuration(0.0) {
   setWindowTitle("频播放器");
   setFixedSize(500, 800);
   setupUI();
 
   // 创建音频组件
   m_player = std::make_unique<AudioPlayer>(this);
-
-  // 创建更新定时器
-  m_updateTimer = new QTimer(this);
-  m_updateTimer->setInterval(500); // 每500ms更新一次，减少频率
+  QObject::connect(m_player.get(), &AudioPlayer::signalTimeProgress, this,
+                   &MainWindow::onTimeProgress);
 
   // 连接信号
   // connect(m_player, &AudioPlayer::stateChanged, this,
   // &MainWindow::onPlayerStateChanged);
-  connect(m_updateTimer, &QTimer::timeout, this, &MainWindow::updatePlayback);
 }
 
 MainWindow::~MainWindow() {
-  if (m_updateTimer) {
-    m_updateTimer->stop();
-  }
   if (m_player) {
     m_player->stop();
   }
@@ -43,34 +37,33 @@ void MainWindow::setupUI() {
   // 文件选择组
   auto fileGroup = new QGroupBox("文件选择");
   auto fileLayout = new QVBoxLayout(fileGroup);
-  fileLayout->setContentsMargins(15, 15, 15, 15);  // 设置内边距
-  fileLayout->setSpacing(15);  // 设置控件间的间距
-  
+  fileLayout->setContentsMargins(15, 15, 15, 15); // 设置内边距
+  fileLayout->setSpacing(15);                     // 设置控件间的间距
+
   auto fileLayout1 = new QHBoxLayout();
   m_openButton1 = new QPushButton("打开音频文件1");
-  m_openButton1->setMinimumHeight(40);  // 设置按钮最小高度
-  m_openButton1->setMinimumWidth(120);  // 设置按钮最小宽度
+  m_openButton1->setMinimumHeight(40); // 设置按钮最小高度
+  m_openButton1->setMinimumWidth(120); // 设置按钮最小宽度
   m_fileLabel1 = new QLabel("");
   m_fileLabel1->setStyleSheet("QLabel { color: gray; font-style: italic; }");
-  m_fileLabel1->setMinimumHeight(40);   // 设置标签最小高度以与按钮对齐
+  m_fileLabel1->setMinimumHeight(40); // 设置标签最小高度以与按钮对齐
   fileLayout1->addWidget(m_openButton1);
   fileLayout1->addWidget(m_fileLabel1, 1);
   connect(m_openButton1, &QPushButton::clicked, this, &MainWindow::onOpenFile1);
 
   auto fileLayout2 = new QHBoxLayout();
   m_openButton2 = new QPushButton("打开音频文件2");
-  m_openButton2->setMinimumHeight(40);  // 设置按钮最小高度
-  m_openButton2->setMinimumWidth(120);  // 设置按钮最小宽度
+  m_openButton2->setMinimumHeight(40); // 设置按钮最小高度
+  m_openButton2->setMinimumWidth(120); // 设置按钮最小宽度
   m_fileLabel2 = new QLabel("");
   m_fileLabel2->setStyleSheet("QLabel { color: gray; font-style: italic; }");
-  m_fileLabel2->setMinimumHeight(40);   // 设置标签最小高度以与按钮对齐
+  m_fileLabel2->setMinimumHeight(40); // 设置标签最小高度以与按钮对齐
   fileLayout2->addWidget(m_openButton2);
   fileLayout2->addWidget(m_fileLabel2, 1);
   connect(m_openButton2, &QPushButton::clicked, this, &MainWindow::onOpenFile2);
 
   fileLayout->addLayout(fileLayout1);
   fileLayout->addLayout(fileLayout2);
-
 
   // 播放控制组
   auto controlGroup = new QGroupBox("播放控制");
@@ -246,8 +239,6 @@ void MainWindow::setupUI() {
   statusBar()->addWidget(m_statusLabel);
 }
 
-
-
 void MainWindow::onOpenFile1() {
   QString fileName = QFileDialog::getOpenFileName(
       this, "选择音频文件", "",
@@ -278,7 +269,6 @@ void MainWindow::onOpenFile2() {
   onOpenFile();
 }
 
-
 void MainWindow::onOpenFile() {
   std::vector<std::filesystem::path> filePaths;
   filePaths.push_back(m_fileLabel1->text().toStdWString());
@@ -308,8 +298,6 @@ void MainWindow::onOpenFile() {
   }
 }
 
-
-
 void MainWindow::playPause() {
   if (m_player->isPlaying()) {
     m_player->pause();
@@ -325,7 +313,6 @@ void MainWindow::stop() {
 
   m_playPauseButton->setText("播放");
   m_isPlaying = false;
-  m_updateTimer->stop();
 
   // 重置进度显示和播放进度跟踪
   m_progressSlider->setValue(0);
@@ -356,23 +343,13 @@ void MainWindow::onDecoderError(const QString &message) {
   m_statusLabel->setText("解码错误");
 }
 
-void MainWindow::updatePlayback() {
-
+void MainWindow::onTimeProgress(int64_t time_seconds) {
   // 更新播放进度（只有在用户不拖动进度条时才更新）
   if (!m_isSliderPressed && m_totalDuration > 0 && m_player) {
-    // 使用播放器的实际播放时长而不是解码器的处理进度
-    // double currentPos = m_player->getPlayedDuration();
-    // int sliderValue = (int)((currentPos / m_totalDuration) * 1000);
-    // m_progressSlider->setValue(sliderValue);
-    // m_currentTimeLabel->setText(formatTime(currentPos));
+    int sliderValue = (int)((time_seconds / m_totalDuration) * 1000);
+    m_progressSlider->setValue(sliderValue);
+    m_currentTimeLabel->setText(formatTime(time_seconds));
   }
-
-  // // 检查是否需要更多数据
-  // if (m_decoder->isAtEnd() && !m_player->isPlaying()) {
-  //     // 播放结束
-  //     stop();
-  //     m_statusLabel->setText("播放完成");
-  // }
 }
 
 QString MainWindow::formatTime(double seconds) {
@@ -390,7 +367,8 @@ void MainWindow::onProgressSliderReleased() {
   m_isSliderPressed = false;
 
   if (m_totalDuration > 0) {
-    double position = (double)m_progressSlider->value() / 1000 * m_totalDuration;
+    double position =
+        (double)m_progressSlider->value() / 1000 * m_totalDuration;
     int64_t position_ms = (int64_t)(position * 1000);
     m_player->seek(position_ms);
   }

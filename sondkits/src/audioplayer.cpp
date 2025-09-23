@@ -72,11 +72,16 @@ void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
   // audio play
   m_audio_play =
       std::make_unique<AudioPlay>(audio_format, m_compose_source, this);
+
+  m_update_timer.setInterval(1000);
+  connect(&m_update_timer, &QTimer::timeout, this,
+          &AudioPlayer::onUpdateTimerTimeout);
 }
 
 void AudioPlayer::play() {
   if (m_audio_play) {
     m_audio_play->play();
+    m_update_timer.start();
     // m_audio_play->saveAsPCMFile("/Volumes/extern-usb/github/demo/sondkits/decode.pcm");
   }
 }
@@ -92,6 +97,7 @@ void AudioPlayer::stop() {
   if (m_audio_play) {
     m_audio_play->stop();
   }
+  m_update_timer.stop();
   for (const auto &audio_decoder : m_audio_decoders) {
     audio_decoder->close();
   }
@@ -136,7 +142,15 @@ void AudioPlayer::seek(int64_t time_ms) {
   if (m_compose_source) {
     m_compose_source->clear();
   }
+
+  m_audio_play->setPlayedPositionMs(time_ms);
+
   if (isplaying) {
     m_audio_play->play();
   }
+}
+
+void AudioPlayer::onUpdateTimerTimeout() {
+  auto played_position_ms = m_audio_play->getPlayedPositionMs();
+  emit signalTimeProgress(played_position_ms / 1000);
 }

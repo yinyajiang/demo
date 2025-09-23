@@ -2,6 +2,7 @@
 
 #include "audioinfo.h"
 #include <QObject>
+#include <QTimer>
 #include <filesystem>
 #include <memory>
 
@@ -29,9 +30,13 @@ public:
   void setVolumeBalance(float balance);
   void setTempo(float tempo);
   void setSemitone(int semitone);
+
 signals:
   void signalTimeProgress(int64_t time_seconds);
   void signalPlayFinished();
+
+private slots:
+  void onUpdateTimerTimeout();
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
@@ -43,4 +48,6 @@ private:
   std::shared_ptr<ComposeDataSource> m_compose_source;
   std::vector<std::filesystem::path> m_in_fpaths;
   std::atomic<bool> m_stoped;
+
+  QTimer m_update_timer;
 };
