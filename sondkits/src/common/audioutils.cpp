@@ -57,32 +57,3 @@ void foreachDecoderData(std::shared_ptr<AudioDecoder> audio_decoder,
   av_freep(&buffer);
   decode_queue->stop();
 }
-
-int getSemitoneDifference(ChromaticKey fromKey, ChromaticKey toKey) {
-  // 将调性转换为对应的根音半音值
-  // 大调：0-11，小调：12-23，但小调需要转换为对应的根音
-  int fromRoot, toRoot;
-
-  if (fromKey < 12) {
-    // 大调调性，直接使用枚举值
-    fromRoot = fromKey;
-  } else {
-    // 小调调性，转换为对应的根音
-    // 小调调性的根音 = 大调调性 + 9个半音（小三度）
-    fromRoot = (fromKey - 12 + 9) % 12;
-  }
-
-  if (toKey < 12) {
-    // 大调调性
-    toRoot = toKey;
-  } else {
-    // 小调调性
-    toRoot = (toKey - 12 + 9) % 12;
-  }
-
-  // 计算半音差
-  int semitoneDifference = (toRoot - fromRoot) % 12;
-  if (semitoneDifference < 0)
-    semitoneDifference += 12;
-  return semitoneDifference;
-}

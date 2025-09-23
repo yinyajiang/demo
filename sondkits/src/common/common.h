@@ -22,7 +22,7 @@ private:
 public:
   SpinLock() = default;
   SpinLock(const SpinLock &) = delete;
-  SpinLock &operator=(const SpinLock) = delete;
+  SpinLock &operator=(const SpinLock&) = delete;
   void lock();
   void unlock();
   bool try_lock();

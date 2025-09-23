@@ -11,10 +11,12 @@ extern "C" {
 
 AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
                            AVSampleFormat target_sample_format)
-    : m_fmt_ctx(nullptr), m_dec_ctx(nullptr), m_in_astream_idx(-1),
-      m_target_sample_rate(target_sample_rate),
+    : m_fmt_ctx(nullptr), m_dec_ctx(nullptr), m_swr_ctx(nullptr),
+      m_in_astream_idx(-1), m_target_sample_rate(target_sample_rate),
       m_target_channels(target_channels),
-      m_target_sample_format(target_sample_format), m_is_end(false),
+      m_target_sample_format(target_sample_format),
+      m_target_sample_size(0),
+      m_is_end(false),
       m_packet(nullptr), m_frame(nullptr) {
   assert(av_sample_fmt_is_planar(target_sample_format) == 0);
 }
@@ -77,7 +79,13 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   }
 
   m_in_astream_idx = stream_index;
-  m_is_end = false;
+  m_is_end.store(false);
+  m_sample_rate = m_dec_ctx->sample_rate;
+  m_channels = m_dec_ctx->ch_layout.nb_channels;
+  m_sample_format = m_dec_ctx->sample_fmt;
+  m_duration = m_fmt_ctx->duration;
+
+
   if (m_packet == nullptr) {
     m_packet = av_packet_alloc();
   }
@@ -106,7 +114,7 @@ AVCodecContext *AudioDecoder::codecCtx() const { return m_dec_ctx; }
 int AudioDecoder::audioStreamIndex() const { return m_in_astream_idx; }
 
 double AudioDecoder::duration() const {
-  return double(m_fmt_ctx->duration) / AV_TIME_BASE;
+  return double(m_duration) / AV_TIME_BASE;
 }
 
 int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
@@ -117,12 +125,12 @@ AVSampleFormat AudioDecoder::targetSampleFormat() const {
   return m_target_sample_format;
 }
 
-int AudioDecoder::sampleRate() const { return m_dec_ctx->sample_rate; }
+int AudioDecoder::sampleRate() const { return m_sample_rate; }
 
-int AudioDecoder::channels() const { return m_dec_ctx->ch_layout.nb_channels; }
+int AudioDecoder::channels() const { return m_channels; }
 
 AVSampleFormat AudioDecoder::sampleFormat() const {
-  return m_dec_ctx->sample_fmt;
+  return m_sample_format;
 }
 
 bool AudioDecoder::isEnd() const { return m_is_end.load(); }
@@ -290,6 +298,10 @@ FrameData AudioDecoder::resampleFrame(AVFrame *frame) {
 void AudioDecoder::seek(int64_t time_ms) {
   if (!m_fmt_ctx || !m_dec_ctx || m_in_astream_idx < 0) {
     std::cerr << "Error: Cannot seek, decoder not properly initialized" << std::endl;
+    return;
+  }
+  if (time_ms > duration() * 1000) {
+    std::cerr << "Error: Cannot seek, time_ms is greater than duration" << std::endl;
     return;
   }
   

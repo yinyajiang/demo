@@ -48,12 +48,17 @@ private:
   AVPacket *m_packet;
   AVFrame *m_frame;
 
-  int m_in_astream_idx;
   int m_target_sample_rate;
   int m_target_channels;
   int m_target_sample_size;
   AVSampleFormat m_target_sample_format;
-  std::atomic<bool> m_is_end;
 
+  int m_in_astream_idx;
+  int m_sample_rate;
+  int m_channels;
+  int64_t m_duration;
+  AVSampleFormat m_sample_format;
+
+  std::atomic<bool> m_is_end;
   SpinLock m_lock;
 };

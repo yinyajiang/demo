@@ -23,7 +23,6 @@ public:
   void clear();
   FrameData pop();
   int64_t readData(uint8_t *data, int64_t size);
-  int64_t readDataUntil(uint8_t *data, int64_t size);
   int64_t bytesAvailable();
   bool aborted();
   bool canRead();
@@ -31,7 +30,6 @@ public:
 private:
   void push(FrameDataList &&items);
   bool is_full();
-  bool is_loop_stopped();
   bool is_decode_stopped();
   bool is_empty();
 
@@ -52,5 +50,5 @@ private:
   std::atomic<bool> m_decode_loop_stopped;
   std::atomic<bool> m_abort;
   std::atomic<int64_t> m_front_pos;
-  std::atomic<int64_t> m_datas_byte_size;
+  std::atomic<int64_t> m_datas_bytes_available;
 };
