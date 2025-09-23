@@ -37,6 +37,7 @@ public:
 private:
   void initSwr();
   FrameData resampleFrame(AVFrame *frame);
+  FrameData flushSwr(bool return_flush);
 
 private:
   AVFormatContext *m_fmt_ctx;
@@ -54,5 +55,5 @@ private:
   AVSampleFormat m_target_sample_format;
   std::atomic<bool> m_is_end;
 
-  SpinLock m_spin_lock;
+  SpinLock m_lock;
 };

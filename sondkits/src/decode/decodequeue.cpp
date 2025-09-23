@@ -22,6 +22,8 @@ void DecodeQueue::clear() {
   m_frames.clear();
   m_front_pos.store(0);
   m_datas_byte_size.store(0);
+  m_cv_decode.notify_one();
+  m_cv_read.notify_one();
 }
 
 void DecodeQueue::stop() {

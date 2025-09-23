@@ -5,6 +5,7 @@ extern "C" {
 #include "SoundTouch.h"
 #include <cassert>
 #include <cstdint>
+#include <mutex>
 
 AudioEffectsFilter::AudioEffectsFilter(AudioEffectsFilterConfig config)
     : AudioFilter(), m_config(config) {
@@ -77,7 +78,7 @@ FilterProcessResult AudioEffectsFilter::realProcess(uint8_t *data,
 
 int64_t AudioEffectsFilter::realFlushRemaining() {
   int64_t num_samples = 0;
-  m_sound_touch_lock.lock();
+  std::unique_lock<SpinLock> lock(m_sound_touch_lock);
   if (m_soundtouch) {
     if (!m_soundtouch_flushed) {
       m_soundtouch->flush();
@@ -85,12 +86,11 @@ int64_t AudioEffectsFilter::realFlushRemaining() {
     }
     num_samples = m_soundtouch->numSamples();
   }
-  m_sound_touch_lock.unlock();
   return num_samples * m_config.channels * m_sample_size;
 }
 
 void AudioEffectsFilter::reciveRemaining(uint8_t *data, int64_t *size) {
-  m_sound_touch_lock.lock();
+  std::unique_lock<SpinLock> lock(m_sound_touch_lock);
   if (m_soundtouch) {
     auto num_samples =
         *size / sizeof(soundtouch::SAMPLETYPE) / m_config.channels;
@@ -98,7 +98,6 @@ void AudioEffectsFilter::reciveRemaining(uint8_t *data, int64_t *size) {
         reinterpret_cast<soundtouch::SAMPLETYPE *>(data), num_samples);
     *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
   }
-  m_sound_touch_lock.unlock();
 }
 
 FilterProcessResult AudioEffectsFilter::applyVolume(uint8_t *data,
@@ -170,7 +169,7 @@ FilterProcessResult AudioEffectsFilter::applyTempoAndSemitone(uint8_t *data,
   if (m_config.format != AV_SAMPLE_FMT_FLT) {
     return AUDIO_PROCESS_RESULT_ERROR;
   }
-  m_sound_touch_lock.lock();
+  std::unique_lock<SpinLock> lock(m_sound_touch_lock);
   FilterProcessResult result = AUDIO_PROCESS_RESULT_SUCCESS;
   if (m_soundtouch && (m_tempo != 1.0f || m_semitone != 0)) {
     auto num_samples =
@@ -184,7 +183,6 @@ FilterProcessResult AudioEffectsFilter::applyTempoAndSemitone(uint8_t *data,
     }
     *size = num * sizeof(soundtouch::SAMPLETYPE) * m_config.channels;
   }
-  m_sound_touch_lock.unlock();
   return result;
 }
 
@@ -205,7 +203,7 @@ void AudioEffectsFilter::applyU8SampleVolume(uint8_t *data, float volume) {
 }
 
 void AudioEffectsFilter::newSoundTouch() {
-  m_sound_touch_lock.lock();
+  std::unique_lock<SpinLock> lock(m_sound_touch_lock);
   if (m_soundtouch) {
     m_soundtouch->clear();
     m_soundtouch_flushed = false;
@@ -215,5 +213,4 @@ void AudioEffectsFilter::newSoundTouch() {
   m_soundtouch->setChannels(m_config.channels);
   m_soundtouch->setTempo(m_tempo);
   m_soundtouch->setPitchSemiTones(m_semitone);
-  m_sound_touch_lock.unlock();
 }

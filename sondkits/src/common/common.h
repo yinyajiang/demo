@@ -7,7 +7,7 @@
 // ffplay -f s32le -ar 44100 -ch_layout stereo decode.pcm
 // ffplay -f f32le -ar 44100 -ch_layout stereo decode.pcm
 
-#define PRINT_CONSUME_TIME 1
+#define PRINT_CONSUME_TIME 0
 #define USE_AUBIO_BPM 1
 #define WORKING_SAMPLE_RATE 44100
 #define WORKING_CHANNELS 2
@@ -25,6 +25,7 @@ public:
   SpinLock &operator=(const SpinLock) = delete;
   void lock();
   void unlock();
+  bool try_lock();
 };
 
 std::string avErr2String(int errnum);
