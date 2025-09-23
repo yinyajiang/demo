@@ -9,7 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_player(nullptr), m_updateTimer(nullptr),
       m_isPlaying(false), m_isSliderPressed(false), m_totalDuration(0.0) {
   setWindowTitle("频播放器");
-  setFixedSize(500, 600);
+  setFixedSize(500, 800);
   setupUI();
 
   // 创建音频组件
@@ -42,15 +42,35 @@ void MainWindow::setupUI() {
 
   // 文件选择组
   auto fileGroup = new QGroupBox("文件选择");
-  auto fileLayout = new QHBoxLayout(fileGroup);
+  auto fileLayout = new QVBoxLayout(fileGroup);
+  fileLayout->setContentsMargins(15, 15, 15, 15);  // 设置内边距
+  fileLayout->setSpacing(15);  // 设置控件间的间距
+  
+  auto fileLayout1 = new QHBoxLayout();
+  m_openButton1 = new QPushButton("打开音频文件1");
+  m_openButton1->setMinimumHeight(40);  // 设置按钮最小高度
+  m_openButton1->setMinimumWidth(120);  // 设置按钮最小宽度
+  m_fileLabel1 = new QLabel("");
+  m_fileLabel1->setStyleSheet("QLabel { color: gray; font-style: italic; }");
+  m_fileLabel1->setMinimumHeight(40);   // 设置标签最小高度以与按钮对齐
+  fileLayout1->addWidget(m_openButton1);
+  fileLayout1->addWidget(m_fileLabel1, 1);
+  connect(m_openButton1, &QPushButton::clicked, this, &MainWindow::onOpenFile1);
 
-  m_openButton = new QPushButton("打开音频文件");
-  m_fileLabel = new QLabel("未选择文件");
-  m_fileLabel->setStyleSheet("QLabel { color: gray; font-style: italic; }");
+  auto fileLayout2 = new QHBoxLayout();
+  m_openButton2 = new QPushButton("打开音频文件2");
+  m_openButton2->setMinimumHeight(40);  // 设置按钮最小高度
+  m_openButton2->setMinimumWidth(120);  // 设置按钮最小宽度
+  m_fileLabel2 = new QLabel("");
+  m_fileLabel2->setStyleSheet("QLabel { color: gray; font-style: italic; }");
+  m_fileLabel2->setMinimumHeight(40);   // 设置标签最小高度以与按钮对齐
+  fileLayout2->addWidget(m_openButton2);
+  fileLayout2->addWidget(m_fileLabel2, 1);
+  connect(m_openButton2, &QPushButton::clicked, this, &MainWindow::onOpenFile2);
 
-  fileLayout->addWidget(m_openButton);
-  fileLayout->addWidget(m_fileLabel, 1);
-  connect(m_openButton, &QPushButton::clicked, this, &MainWindow::onOpenFile);
+  fileLayout->addLayout(fileLayout1);
+  fileLayout->addLayout(fileLayout2);
+
 
   // 播放控制组
   auto controlGroup = new QGroupBox("播放控制");
@@ -226,7 +246,9 @@ void MainWindow::setupUI() {
   statusBar()->addWidget(m_statusLabel);
 }
 
-void MainWindow::onOpenFile() {
+
+
+void MainWindow::onOpenFile1() {
   QString fileName = QFileDialog::getOpenFileName(
       this, "选择音频文件", "",
       "音频文件 (*.mp3 *.wav *.flac *.aac *.ogg *.m4a);;所有文件 (*.*)");
@@ -234,11 +256,37 @@ void MainWindow::onOpenFile() {
   if (fileName.isEmpty()) {
     return;
   }
-  m_player->stop();
+  m_fileLabel1->setText(fileName);
+  if (m_fileLabel1->text().isEmpty() || m_fileLabel2->text().isEmpty()) {
+    return;
+  }
+  onOpenFile();
+}
+
+void MainWindow::onOpenFile2() {
+  QString fileName = QFileDialog::getOpenFileName(
+      this, "选择音频文件", "",
+      "音频文件 (*.mp3 *.wav *.flac *.aac *.ogg *.m4a);;所有文件 (*.*)");
+
+  if (fileName.isEmpty()) {
+    return;
+  }
+  m_fileLabel2->setText(fileName);
+  if (m_fileLabel1->text().isEmpty() || m_fileLabel2->text().isEmpty()) {
+    return;
+  }
+  onOpenFile();
+}
+
+
+void MainWindow::onOpenFile() {
+  std::vector<std::filesystem::path> filePaths;
+  filePaths.push_back(m_fileLabel1->text().toStdWString());
+  filePaths.push_back(m_fileLabel2->text().toStdWString());
   try {
-    m_player->open(fileName.toStdWString());
+    m_player->open(filePaths);
     m_playPauseButton->setEnabled(true);
-    auto info = m_player->fetchAudioInfo();
+    auto info = m_player->fetchAudioInfo(filePaths[0]);
     m_audioInfoLabel->setText(
         QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5,\r\n "
                 "时长: %6, 耗时: %7ms")
@@ -259,6 +307,8 @@ void MainWindow::onOpenFile() {
     m_audioInfoLabel->setText("错误: " + QString(e.what()));
   }
 }
+
+
 
 void MainWindow::playPause() {
   if (m_player->isPlaying()) {
@@ -340,8 +390,9 @@ void MainWindow::onProgressSliderReleased() {
   m_isSliderPressed = false;
 
   if (m_totalDuration > 0) {
-    double position = (double)m_progressSlider->value() * m_totalDuration;
-    m_player->seek(position);
+    double position = (double)m_progressSlider->value() / 1000 * m_totalDuration;
+    int64_t position_ms = (int64_t)(position * 1000);
+    m_player->seek(position_ms);
   }
 }
 

@@ -4,6 +4,7 @@
 #include "audioplay.h"
 #include "audioutils.h"
 #include "decodedatasource.h"
+#include "composedatasource.h"
 
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),
@@ -11,21 +12,23 @@ AudioPlayer::AudioPlayer(QObject *parent)
 
 AudioPlayer::~AudioPlayer() {}
 
-void AudioPlayer::open(const std::filesystem::path &in_fpath) {
-  m_in_fpath = in_fpath;
+void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
+  m_in_fpaths = in_fpaths;
   m_stoped.store(false);
 
-  m_audio_info_fetch = std::make_shared<FetchAudioInfo>();
   // decoder
-  m_audio_decoder = std::make_shared<AudioDecoder>(
-      WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
-  m_audio_decoder->open(in_fpath);
+  for (const auto &in_fpath : in_fpaths) {
+    auto audio_decoder = std::make_shared<AudioDecoder>(
+        WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
+    audio_decoder->open(in_fpath);
+    m_audio_decoders.push_back(audio_decoder);
+  }
 
   // audio play
   QAudioFormat audio_format;
-  audio_format.setSampleRate(m_audio_decoder->targetSampleRate());
-  audio_format.setChannelCount(m_audio_decoder->targetChannels());
-  switch (m_audio_decoder->targetSampleFormat()) {
+  audio_format.setSampleRate(WORKING_SAMPLE_RATE);
+  audio_format.setChannelCount(WORKING_CHANNELS);
+  switch (WORKING_SAMPLE_AV_FORMAT) {
   case AV_SAMPLE_FMT_U8:
     audio_format.setSampleFormat(QAudioFormat::UInt8);
     break;
@@ -44,22 +47,28 @@ void AudioPlayer::open(const std::filesystem::path &in_fpath) {
 
   // filter
   AudioEffectsFilterConfig filter_config;
-  filter_config.sample_rate = m_audio_decoder->targetSampleRate();
-  filter_config.channels = m_audio_decoder->targetChannels();
-  filter_config.format = m_audio_decoder->targetSampleFormat();
+  filter_config.sample_rate = WORKING_SAMPLE_RATE;
+  filter_config.channels = WORKING_CHANNELS;
+  filter_config.format = WORKING_SAMPLE_AV_FORMAT;
   filter_config.max_tempo = MAX_TEMPO;
   m_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
+  //compose source
+  m_compose_source = std::make_shared<ComposeDataSource>(audio_format.bytesPerFrame());
+  m_compose_source->addFilter(m_effects_filter);
+
   // decode queue
-  m_decode_queue = std::make_shared<DecodeQueue>(m_audio_decoder);
-  m_decode_queue->start();
+  for (const auto &audio_decoder : m_audio_decoders) {
+    auto decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
+    m_decode_queues.push_back(decode_queue);
+    decode_queue->start();
 
-  // data source
-  m_data_source = std::make_shared<DecodeDataSource>(
-      audio_format.bytesPerFrame(), m_decode_queue);
-  m_data_source->addFilter(m_effects_filter);
+    auto source = std::make_shared<DecodeDataSource>(audio_format.bytesPerFrame(), decode_queue);
+    m_compose_source->addDataSource(source);
+  }
 
-  m_audio_play = std::make_unique<AudioPlay>(audio_format, m_data_source, this);
+  //audio play
+  m_audio_play = std::make_unique<AudioPlay>(audio_format, m_compose_source, this);
 }
 
 void AudioPlayer::play() {
@@ -80,14 +89,11 @@ void AudioPlayer::stop() {
   if (m_audio_play) {
     m_audio_play->stop();
   }
-  if (m_audio_decoder) {
-    m_audio_decoder->close();
+  for (const auto &audio_decoder : m_audio_decoders) {
+    audio_decoder->close();
   }
-  if (m_audio_info_fetch) {
-    m_audio_info_fetch->abort();
-  }
-  if (m_decode_queue) {
-    m_decode_queue->stop();
+  for (const auto &decode_queue : m_decode_queues) {
+    decode_queue->stop();
   }
 }
 
@@ -112,18 +118,22 @@ void AudioPlayer::setSemitone(int semitone) {
   m_effects_filter->setSemitone(semitone);
 }
 
-AudioInfo AudioPlayer::fetchAudioInfo() {
-  if (m_audio_info_fetch) {
-    return m_audio_info_fetch->fetchAudioInfo(m_in_fpath);
-  }
-  return AudioInfo();
+AudioInfo AudioPlayer::fetchAudioInfo(std::filesystem::path fpath) {
+  FetchAudioInfo fetch_audio_info;
+  return fetch_audio_info.fetchAudioInfo(fpath);
 }
 
 void AudioPlayer::seek(int64_t time_ms) {
-  if (m_audio_decoder) {
-    m_audio_decoder->seek(time_ms);
+  auto isplaying = isPlaying();
+  m_audio_play->pause();
+  //todo: 同步seek
+  for (const auto &audio_decoder : m_audio_decoders) {
+    audio_decoder->seek(time_ms);
   }
-  if (m_data_source) {
-    m_data_source->clear();
+  if (m_compose_source) {
+    m_compose_source->clear();
+  }
+  if (isplaying) {
+    m_audio_play->play();
   }
 }

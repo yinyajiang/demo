@@ -10,14 +10,15 @@ class AudioEffectsFilter;
 class AudioDecoder;
 class DecodeQueue;
 class DataSource;
+class ComposeDataSource;
 class AudioPlayer : public QObject {
   Q_OBJECT
 public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  AudioInfo fetchAudioInfo();
-  void open(const std::filesystem::path &in_fpath);
+  static AudioInfo fetchAudioInfo(std::filesystem::path fpath);
+  void open(const std::vector<std::filesystem::path> &in_fpaths);
   void play();
   void pause();
   void stop();
@@ -35,10 +36,11 @@ signals:
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
   std::shared_ptr<AudioEffectsFilter> m_effects_filter;
-  std::shared_ptr<AudioDecoder> m_audio_decoder;
-  std::shared_ptr<FetchAudioInfo> m_audio_info_fetch;
-  std::shared_ptr<DecodeQueue> m_decode_queue;
-  std::shared_ptr<DataSource> m_data_source;
-  std::filesystem::path m_in_fpath;
+
+  std::vector<std::shared_ptr<AudioDecoder>> m_audio_decoders;
+  std::vector<std::shared_ptr<DecodeQueue>> m_decode_queues;
+
+  std::shared_ptr<ComposeDataSource> m_compose_source;
+  std::vector<std::filesystem::path> m_in_fpaths;
   std::atomic<bool> m_stoped;
 };
