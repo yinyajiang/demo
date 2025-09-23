@@ -1,6 +1,5 @@
 
 #pragma once
-#include "audiofilter.h"
 #include "datasource.h"
 #include "decodequeue.h"
 #include <memory>

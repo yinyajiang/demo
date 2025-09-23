@@ -5,14 +5,13 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <semaphore>
 #include <thread>
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
 #include <libswresample/swresample.h>
 }
-#include <future>
-#include <semaphore>
 
 class DecodeQueue {
 public:

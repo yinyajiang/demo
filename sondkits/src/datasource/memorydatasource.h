@@ -1,8 +1,6 @@
 
 #pragma once
-#include "audiofilter.h"
 #include "datasource.h"
-#include <memory>
 
 class MemoryDataSource : public DataSource {
 public:
