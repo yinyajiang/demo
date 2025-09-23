@@ -64,11 +64,16 @@ AudioPlay::AudioPlay(QAudioFormat audio_format,
       audio_format.bytesPerFrame() * audio_format.sampleRate() * 100 / 1000;
   m_audio_sink->setBufferSize(sinkBuff * MAX_TEMPO);
   m_audio_sink->setVolume(m_volume);
+
+  connect(m_audio_sink.get(), &QAudioSink::stateChanged, this,
+          &AudioPlay::onStateChanged);
 }
 
 AudioPlay::~AudioPlay() {}
 
-void AudioPlay::on_state_changed() {}
+void AudioPlay::onStateChanged() {
+  emit signalStateChanged(m_audio_sink->state());
+}
 
 void AudioPlay::play() {
   if (!m_pcm_source) {

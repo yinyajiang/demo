@@ -30,8 +30,11 @@ public:
   void setPlayedPositionMs(int64_t position_ms);
   int64_t getPlayedPositionMs() const;
 
+signals:
+  void signalStateChanged(QAudio::State state);
+
 protected slots:
-  void on_state_changed();
+  void onStateChanged();
 
 private:
   QAudioFormat m_audio_format;

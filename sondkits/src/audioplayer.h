@@ -37,6 +37,7 @@ signals:
 
 private slots:
   void onUpdateTimerTimeout();
+  void onStateChanged(int state);
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;

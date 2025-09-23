@@ -5,6 +5,8 @@
 #include "audioutils.h"
 #include "composedatasource.h"
 #include "decodedatasource.h"
+#include <QDebug>
+#include <QtMultimedia/qaudio.h>
 
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),
@@ -79,6 +81,9 @@ void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
   m_update_timer.setInterval(1000);
   connect(&m_update_timer, &QTimer::timeout, this,
           &AudioPlayer::onUpdateTimerTimeout);
+
+  connect(m_audio_play.get(), &AudioPlay::signalStateChanged,
+          [this](QAudio::State state) { this->onStateChanged(state); });
 }
 
 void AudioPlayer::play() {
@@ -159,4 +164,14 @@ void AudioPlayer::onUpdateTimerTimeout() {
     played_position_ms = m_max_duration_ms;
   }
   emit signalTimeProgress(played_position_ms / 1000);
+}
+
+void AudioPlayer::onStateChanged(int state_) {
+  QAudio::State state = static_cast<QAudio::State>(state_);
+  if ((state == QAudio::IdleState || state == QAudio::StoppedState) &&
+      m_compose_source->isEnd()) {
+    emit signalPlayFinished();
+    m_update_timer.stop();
+    qDebug() << "### play finished";
+  }
 }
