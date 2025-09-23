@@ -6,16 +6,19 @@
 DecodeQueue::DecodeQueue(std::shared_ptr<DecoderInterface> decoder,
                          int max_frames_size)
     : m_decoder(decoder), m_max_frames_size(max_frames_size),
-      m_decode_loop_stopped(false), m_abort(false), m_front_pos(0),
-      m_datas_bytes_available(0) {}
+      m_decode_thread_stoped(false), m_abort(false), m_front_pos(0),
+      m_datas_bytes_available(0), m_decoder_end(false), m_decode_semaphore(0) {
+      m_decoder->setResumeDecodableCallback([this]() { resumeDecodableCallback(); });
+ }
 
 DecodeQueue::~DecodeQueue() { stop();clear(); }
 
 void DecodeQueue::start() {
   std::unique_lock<std::mutex> lock(m_mutex);
   m_abort.store(false);
-  m_decode_loop_stopped.store(false);
-  m_decode_thread = std::thread([this]() { decode_loop(); });
+  m_decoder_end.store(false);
+  m_decode_thread_stoped.store(false);
+  m_decode_thread = std::thread([this]() { decodeLoop(); });
 }
 
 void DecodeQueue::clear() {
@@ -26,17 +29,15 @@ void DecodeQueue::clear() {
   m_frames.clear();
   m_front_pos.store(0);
   m_datas_bytes_available.store(0);
-  m_cv_decode.notify_one();
-  m_cv_read.notify_one();
+  wakeup(false);
 }
 
 void DecodeQueue::stop() {
   {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_abort.store(true);
-    stop_loop();
-    m_cv_decode.notify_one();
-    m_cv_read.notify_one();
+    stopLoop();
+    wakeup(true);
   }
   if (m_decode_thread.joinable()) {
     m_decode_thread.join();
@@ -45,11 +46,11 @@ void DecodeQueue::stop() {
 
 bool DecodeQueue::aborted() { return m_abort.load(); }
 
-bool DecodeQueue::canRead() {
+bool DecodeQueue::readEnded() {
   if (aborted()) {
-    return false;
+    return true;
   };
-  return !is_empty() || !is_decode_stopped();
+  return (isEmpty() && (m_decoder_end.load() || m_decode_thread_stoped.load()));
 }
 
 
@@ -58,14 +59,14 @@ int64_t DecodeQueue::readData(uint8_t *buffer, int64_t buffer_size) {
     return 0;
   }
   std::unique_lock<std::mutex> lock(m_mutex);
-  while (is_empty()) {
+  while (isEmpty()) {
     if (aborted()) {
       return 0;
     }
     m_cv_read.wait(lock, [this]() -> bool {
-      return aborted() || !is_empty() || is_decode_stopped();
+      return aborted() || !isEmpty() || isDecodeNotWorded();
     });
-    if (!canRead()) {
+    if (readEnded()) {
       m_cv_decode.notify_all();
       return 0;
     }
@@ -114,14 +115,14 @@ int64_t DecodeQueue::bytesAvailable() {
 
 FrameData DecodeQueue::pop() {
   std::unique_lock<std::mutex> lock(m_mutex);
-  while (is_empty()) {
+  while (isEmpty()) {
     if (aborted()) {
       return FrameData();
     }
     m_cv_read.wait(lock, [this]() -> bool {
-      return aborted() || !is_empty() || is_decode_stopped();
+      return aborted() || !isEmpty() || isDecodeNotWorded();
     });
-    if (!canRead()) {
+    if (readEnded()) {
       m_cv_decode.notify_all();
       return FrameData();
     }
@@ -138,7 +139,7 @@ FrameData DecodeQueue::pop() {
 
 void DecodeQueue::push(FrameDataList &&items) {
   std::unique_lock<std::mutex> lock(m_mutex);
-  while (is_full()) {
+  while (isFull()) {
     if (aborted()) {
       return;
     }
@@ -155,7 +156,7 @@ void DecodeQueue::push(FrameDataList &&items) {
   m_cv_read.notify_one();
 }
 
-void DecodeQueue::decode_loop() {
+void DecodeQueue::decodeLoop() {
   while (!aborted()) {
     auto data = m_decoder->decodeNextFrameData();
     if (aborted()) {
@@ -164,24 +165,42 @@ void DecodeQueue::decode_loop() {
 
     if (data.empty()) {
       if (m_decoder->isEnd()) {
-        break;
+        m_decoder_end.store(true);
+        m_cv_read.notify_all();
+        m_cv_decode.notify_all();
+        //等待恢复解码状态
+        m_decode_semaphore.acquire();
+        continue;
       }
       std::this_thread::yield();
       continue;
+    } else {
+      m_decoder_end.store(false);
     }
     push(std::move(data));
   }
-  stop_loop();
+  stopLoop();
 }
 
-void DecodeQueue::stop_loop() {
-  m_decode_loop_stopped.store(true);
+void DecodeQueue::wakeup(bool include_decode) {
   m_cv_read.notify_all();
   m_cv_decode.notify_all();
+  if (include_decode) {
+    m_decode_semaphore.release();
+  }
 }
 
-bool DecodeQueue::is_empty() { return m_frames.empty(); }
+void DecodeQueue::resumeDecodableCallback() {
+  wakeup(true);
+}
 
-bool DecodeQueue::is_full() { return m_frames.size() >= m_max_frames_size; }
+void DecodeQueue::stopLoop() {
+  m_decode_thread_stoped.store(true);
+  wakeup(true);
+}
 
-bool DecodeQueue::is_decode_stopped() { return m_decode_loop_stopped.load(); }
+bool DecodeQueue::isEmpty() { return m_frames.empty(); }
+
+bool DecodeQueue::isFull() { return m_frames.size() >= m_max_frames_size; }
+
+bool DecodeQueue::isDecodeNotWorded() { return m_decoder_end.load() || m_decode_thread_stoped.load(); }

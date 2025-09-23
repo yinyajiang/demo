@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <string>
+#include <filesystem>
 
 // ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
 // ffplay -f s32le -ar 44100 -ch_layout stereo decode.pcm
@@ -28,3 +29,4 @@ public:
 };
 
 std::string avErr2String(int errnum);
+std::string fs2u8(const std::filesystem::path& path);

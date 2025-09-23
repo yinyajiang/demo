@@ -11,6 +11,8 @@ extern "C" {
 #include <libavutil/avutil.h>
 #include <libswresample/swresample.h>
 }
+#include <future>
+#include <semaphore>
 
 class DecodeQueue {
 public:
@@ -25,16 +27,20 @@ public:
   int64_t readData(uint8_t *data, int64_t size);
   int64_t bytesAvailable();
   bool aborted();
-  bool canRead();
+  bool readEnded();
 
 private:
   void push(FrameDataList &&items);
-  bool is_full();
-  bool is_decode_stopped();
-  bool is_empty();
+  bool isFull();
+  bool isDecodeNotWorded();
+  bool isEmpty();
 
-  void decode_loop();
-  void stop_loop();
+  void decodeLoop();
+  void stopLoop();
+
+  void wakeup(bool include_decode);
+
+  void resumeDecodableCallback();
 
 private:
   FrameDataList m_frames;
@@ -46,8 +52,10 @@ private:
   std::shared_ptr<DecoderInterface> m_decoder;
 
   std::thread m_decode_thread;
+  std::binary_semaphore m_decode_semaphore;
 
-  std::atomic<bool> m_decode_loop_stopped;
+  std::atomic<bool> m_decode_thread_stoped;
+  std::atomic<bool> m_decoder_end;
   std::atomic<bool> m_abort;
   std::atomic<int64_t> m_front_pos;
   std::atomic<int64_t> m_datas_bytes_available;

@@ -14,6 +14,7 @@ public:
   void consumeAll();
   void addFilter(std::shared_ptr<AudioFilter> filter);
   void abort();
+  int64_t frameSize() const;
   virtual void clear();
 
 protected:

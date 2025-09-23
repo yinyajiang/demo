@@ -13,7 +13,7 @@ int64_t DecodeDataSource::realReadData(uint8_t *data, int64_t maxlen) {
   return m_decode_queue->readData(data, maxlen);
 }
 
-bool DecodeDataSource::realIsEnd() const { return !m_decode_queue->canRead(); }
+bool DecodeDataSource::realIsEnd() const { return m_decode_queue->readEnded(); }
 
 int64_t DecodeDataSource::bytesAvailable() const {
   return m_decode_queue->bytesAvailable();

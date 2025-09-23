@@ -27,7 +27,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   std::unique_lock<SpinLock> lock(m_lock);
 
   int ret = 0;
-  if ((ret = avformat_open_input(&m_fmt_ctx, in_fpath.u8string().c_str(),
+  if ((ret = avformat_open_input(&m_fmt_ctx, fs2u8(in_fpath).c_str(),
                                  nullptr, nullptr)) < 0) {
     throw std::runtime_error("[avformat_open_input]Could not open input file:" +
                              avErr2String(ret));
@@ -327,6 +327,7 @@ void AudioDecoder::seek(int64_t time_ms) {
   m_is_end.store(false);
   avcodec_flush_buffers(m_dec_ctx);
   flushSwr(false);
+  resumeDecodable();
 }
 
 FrameData AudioDecoder::flushSwr(bool return_flush) {

@@ -19,6 +19,8 @@ void DataSource::clear() {
   }
 }
 
+int64_t DataSource::frameSize() const { return m_frame_size; }
+
 bool DataSource::isEnd() { return m_aborted || (realIsEnd() && filterIsFlushed(0)); }
 
 void DataSource::consumeAll() {

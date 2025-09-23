@@ -6,7 +6,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Widgets Multimedia)
@@ -20,6 +20,7 @@ add_executable(sondkits
   src/datasource/decodedatasource.cpp
   src/datasource/filedatasource.cpp
   src/datasource/memorydatasource.cpp
+  src/datasource/composedatasource.cpp
   src/audiofilter/audioeffectsfilter.cpp
   src/audiofilter/audiothroughfilter.cpp
   src/audioinfo/audioinfo.cpp
@@ -41,6 +42,7 @@ add_executable(sondkits
   src/datasource/decodedatasource.h
   src/datasource/filedatasource.h
   src/datasource/memorydatasource.h
+  src/datasource/composedatasource.h
   src/audiofilter/audiofilter.h
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
