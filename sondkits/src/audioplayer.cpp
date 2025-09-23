@@ -3,8 +3,8 @@
 #include "audioeffectsfilter.h"
 #include "audioplay.h"
 #include "audioutils.h"
-#include "decodedatasource.h"
 #include "composedatasource.h"
+#include "decodedatasource.h"
 
 AudioPlayer::AudioPlayer(QObject *parent)
     : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),
@@ -53,8 +53,9 @@ void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
   filter_config.max_tempo = MAX_TEMPO;
   m_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
-  //compose source
-  m_compose_source = std::make_shared<ComposeDataSource>(audio_format.bytesPerFrame());
+  // compose source
+  m_compose_source = std::make_shared<ComposeDataSource>(
+      audio_format.bytesPerFrame(), WORKING_SAMPLE_AV_FORMAT);
   m_compose_source->addFilter(m_effects_filter);
 
   // decode queue
@@ -63,12 +64,14 @@ void AudioPlayer::open(const std::vector<std::filesystem::path> &in_fpaths) {
     m_decode_queues.push_back(decode_queue);
     decode_queue->start();
 
-    auto source = std::make_shared<DecodeDataSource>(audio_format.bytesPerFrame(), decode_queue);
+    auto source = std::make_shared<DecodeDataSource>(
+        audio_format.bytesPerFrame(), decode_queue);
     m_compose_source->addDataSource(source);
   }
 
-  //audio play
-  m_audio_play = std::make_unique<AudioPlay>(audio_format, m_compose_source, this);
+  // audio play
+  m_audio_play =
+      std::make_unique<AudioPlay>(audio_format, m_compose_source, this);
 }
 
 void AudioPlayer::play() {
@@ -126,7 +129,7 @@ AudioInfo AudioPlayer::fetchAudioInfo(std::filesystem::path fpath) {
 void AudioPlayer::seek(int64_t time_ms) {
   auto isplaying = isPlaying();
   m_audio_play->pause();
-  //todo: 同步seek
+  // todo: 同步seek
   for (const auto &audio_decoder : m_audio_decoders) {
     audio_decoder->seek(time_ms);
   }
