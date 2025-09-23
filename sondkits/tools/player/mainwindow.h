@@ -25,9 +25,7 @@ public:
   ~MainWindow();
 
 private slots:
-  void onOpenFile2();
-  void onOpenFile1();
-  void onOpenFile();
+  void onOpenFile(int i);
 
   void playPause();
   void stop();
@@ -50,9 +48,11 @@ private:
   // 文件控制组
   QPushButton *m_openButton1;
   QLabel *m_fileLabel1;
+  QString m_file1;
 
   QPushButton *m_openButton2;
   QLabel *m_fileLabel2;
+  QString m_file2;
 
   // 播放控制组
   QPushButton *m_playPauseButton;
