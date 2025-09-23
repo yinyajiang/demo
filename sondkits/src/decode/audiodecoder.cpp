@@ -288,12 +288,59 @@ void AudioDecoder::seek(int64_t time_ms) {
   if (time_ms <= 0) {
     av_seek_frame(m_fmt_ctx, m_in_astream_idx, 0, AVSEEK_FLAG_BACKWARD);
   } else {
-    AVRational ms_timebase = {1, 1000}; // 毫秒时间基准
-    int64_t timestamp = av_rescale_q(
-        time_ms, ms_timebase, m_fmt_ctx->streams[m_in_astream_idx]->time_base);
+    int64_t timestamp = 0;
+    if (m_fmt_ctx->streams[m_in_astream_idx]->time_base.den == 0) {
+      timestamp = av_rescale_q(time_ms, AVRational{1, 1000}, m_fmt_ctx->streams[m_in_astream_idx]->time_base);
+    } else {
+      timestamp = time_ms * AV_TIME_BASE / 1000;
+    }
     av_seek_frame(m_fmt_ctx, m_in_astream_idx, timestamp, AVSEEK_FLAG_BACKWARD);
   }
-  m_spin_lock.unlock();
   m_is_end.store(false);
   avcodec_flush_buffers(m_dec_ctx);
+  if (m_swr_ctx) {
+    
+  }
+  m_spin_lock.unlock();
+}
+
+FrameData AudioDecoder::flushSwr() {
+  if (!m_swr_ctx) {
+    return;
+  }
+
+  int out_samples = av_rescale_rnd(
+    swr_get_delay(m_swr_ctx, m_dec_ctx->sample_rate),
+    m_target_sample_rate, m_dec_ctx->sample_rate, AV_ROUND_UP);
+
+if (out_samples <= 0) {
+return FrameData{nullptr, 0};
+}
+
+uint8_t **audio_data = nullptr;
+int linesize;
+
+int ret = av_samples_alloc_array_and_samples(&audio_data, &linesize,
+                                             m_target_channels, out_samples,
+                                             m_target_sample_format, 0);
+if (ret < 0) {
+  std::cerr << "Error allocating audio buffer: " << avErr2String(ret)
+            << std::endl;
+  return FrameData{nullptr, 0};
+}
+
+int num = swr_convert(m_swr_ctx, audio_data, out_samples, nullptr, 0);
+if (num <= 0) {
+  if (audio_data) {
+    av_freep(&audio_data[0]);
+    av_freep(&audio_data);
+  }
+  return FrameData{nullptr, 0};
+}
+
+int size = av_samples_get_buffer_size(&linesize, m_target_channels, num,
+                                      m_target_sample_format, 1);
+auto pdata = audio_data[0];
+av_freep(&audio_data);
+return std::move(FrameData{pdata, size});
 }

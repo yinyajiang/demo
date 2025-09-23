@@ -243,7 +243,7 @@ void MainWindow::onOpenFile() {
         QString("BPM: %1, Key: %2, 通道: %3, 采样率: %4, 采样格式: %5,\r\n "
                 "时长: %6, 耗时: %7ms")
             .arg(info.bpm)
-            .arg(info.key_string)
+            .arg(QString::fromStdString(info.key_string))
             .arg(info.channels)
             .arg(info.sample_rate)
             .arg(QString::fromStdString(info.sample_format))
