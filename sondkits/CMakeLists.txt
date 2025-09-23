@@ -9,11 +9,14 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+option(BUILD_QT_PLAYER "Build Qt Player" ON)
+
+
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Widgets Multimedia)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Multimedia)
 
-add_executable(sondkits
-  main.cpp
+add_library(sondkits SHARED
   src/decode/audiodecoder.cpp
   src/decode/decodequeue.cpp
   src/datasource/datasource.cpp
@@ -30,9 +33,7 @@ add_executable(sondkits
   src/common/audioutils.cpp
   src/audioplay.cpp
   src/audioplayer.cpp
-  mainwindow.cpp
 
-  mainwindow.h
   src/decode/audiodecoder.h
   src/decode/decodequeue.h
   src/decode/decoder.h
@@ -62,7 +63,7 @@ target_include_directories(sondkits PRIVATE .
                         ./src/audiofilter
                         ./src/audioinfo)
 
-target_link_libraries(sondkits PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
+target_link_libraries(sondkits PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Multimedia)
 
 include(GNUInstallDirs)
 install(TARGETS sondkits
@@ -77,7 +78,7 @@ install(TARGETS sondkits
 if(WIN32)
     set(ffmpeg_base_path "${PROJECT_SOURCE_DIR}/3rd/ffmpeg")
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
-    target_link_libraries(sondkits PRIVATE
+    target_link_libraries(sondkits PUBLIC
         "${ffmpeg_base_path}/lib/avcodec.lib"
         "${ffmpeg_base_path}/lib/avfilter.lib"
         "${ffmpeg_base_path}/lib/avformat.lib"
@@ -88,11 +89,11 @@ if(WIN32)
 
     set(aubio_base_path "${PROJECT_SOURCE_DIR}/3rd/aubio")
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
-    target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/aubio.lib")
+    target_link_libraries(sondkits PUBLIC "${aubio_base_path}/lib/aubio.lib")
 
     set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder")
     target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/keyfinder.lib")
+    #target_link_libraries(sondkits PUBLIC "${keyfinder_base_path}/lib/keyfinder.lib")
 
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
@@ -105,7 +106,7 @@ else()
         set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder-mac")
     endif()
     target_include_directories(sondkits SYSTEM PRIVATE "${ffmpeg_base_path}/include")
-    target_link_libraries(sondkits PRIVATE
+    target_link_libraries(sondkits PUBLIC
         "${ffmpeg_base_path}/lib/libavcodec.dylib"
         "${ffmpeg_base_path}/lib/libavfilter.dylib"
         "${ffmpeg_base_path}/lib/libavformat.dylib"
@@ -115,16 +116,29 @@ else()
     )
 
     target_include_directories(sondkits SYSTEM PRIVATE "${aubio_base_path}/src")
-    target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
+    target_link_libraries(sondkits PUBLIC "${aubio_base_path}/lib/libaubio.dylib")
 
     target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
+    #target_link_libraries(sondkits PUBLIC "${keyfinder_base_path}/lib/libkeyfinder.dylib")
 endif()
 
 # SoundTouch
 add_subdirectory(3rd/soundtouch)
 target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/soundtouch/include")
-target_link_libraries(sondkits PRIVATE SoundTouch)
+target_link_libraries(sondkits PUBLIC SoundTouch)
+
+
+if(BUILD_QT_PLAYER)
+    add_executable(qt-player
+        tools/player/main.cpp
+        tools/player/mainwindow.cpp
+        tools/player/mainwindow.h
+    )
+    target_include_directories(qt-player PRIVATE  
+                        ./src
+                        ./tools)
+    target_link_libraries(qt-player PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
+endif()
 
 
 

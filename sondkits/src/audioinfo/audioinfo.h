@@ -5,7 +5,7 @@
 #include <string>
 class AudioDecoder;
 
-struct AudioInfo {
+struct AudioFileInfo {
   float bpm;
   int key;
   std::string key_string;
@@ -21,7 +21,7 @@ public:
   FetchAudioInfo();
   ~FetchAudioInfo();
   void abort();
-  AudioInfo fetchAudioInfo(std::filesystem::path in_fpath);
+  AudioFileInfo fetchAudioInfo(std::filesystem::path in_fpath);
 
 private:
   float detectBPM(std::shared_ptr<AudioDecoder> audio_decoder);

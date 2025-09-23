@@ -19,9 +19,9 @@ FetchAudioInfo::~FetchAudioInfo() {}
 
 void FetchAudioInfo::abort() { m_stoped.store(true); }
 
-AudioInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath) {
+AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath) {
   m_stoped.store(false);
-  AudioInfo info;
+  AudioFileInfo info;
   info.key = 0;
   auto start_time = std::chrono::high_resolution_clock::now();
 

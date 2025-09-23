@@ -6,8 +6,6 @@
 #include <QtMultimedia/QAudioSink>
 #include <QtMultimedia/QMediaDevices>
 #include <atomic>
-#include <chrono>
-#include <functional>
 #include <memory>
 
 class PCMDataSourceDevice;

@@ -1,6 +1,7 @@
 #include "audioplayer.h"
 #include "audiodecoder.h"
 #include "audioeffectsfilter.h"
+#include "audioinfo.h"
 #include "audioplay.h"
 #include "audioutils.h"
 #include "composedatasource.h"
@@ -137,7 +138,17 @@ void AudioPlayer::setSemitone(int semitone) {
 
 AudioInfo AudioPlayer::fetchAudioInfo(std::filesystem::path fpath) {
   FetchAudioInfo fetch_audio_info;
-  return fetch_audio_info.fetchAudioInfo(fpath);
+  auto info = fetch_audio_info.fetchAudioInfo(fpath);
+  AudioInfo audio_info;
+  audio_info.bpm = info.bpm;
+  audio_info.key = info.key;
+  audio_info.key_string = info.key_string;
+  audio_info.channels = info.channels;
+  audio_info.sample_rate = info.sample_rate;
+  audio_info.duration_seconds = info.duration_seconds;
+  audio_info.sample_format = info.sample_format;
+  audio_info.consume_time_ms = info.consume_time_ms;
+  return audio_info;
 }
 
 void AudioPlayer::seek(int64_t time_ms) {

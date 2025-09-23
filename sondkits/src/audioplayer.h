@@ -1,10 +1,20 @@
 #pragma once
 
-#include "audioinfo.h"
 #include <QObject>
 #include <QTimer>
 #include <filesystem>
 #include <memory>
+
+struct AudioInfo {
+  float bpm;
+  int key;
+  std::string key_string;
+  int channels;
+  int sample_rate;
+  int duration_seconds;
+  std::string sample_format;
+  int consume_time_ms;
+};
 
 class AudioPlay;
 class AudioEffectsFilter;

@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include "common.h"
 #include <QtCore/QDebug>
 #include <QtCore/QFileInfo>
 #include <QtWidgets/QApplication>
@@ -177,7 +176,7 @@ void MainWindow::setupUI() {
 
   auto tempoLabel = new QLabel("速度:");
   m_tempoSlider = new QSlider(Qt::Horizontal);
-  m_tempoSlider->setRange(MIN_TEMPO * 100, MAX_TEMPO * 100);
+  m_tempoSlider->setRange(0.1 * 100, 2.0 * 100);
   m_tempoSlider->setValue(100);
   m_tempoSlider->setFixedWidth(150);
 
