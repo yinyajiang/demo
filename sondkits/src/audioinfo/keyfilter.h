@@ -19,7 +19,7 @@ public:
 
 protected:
   int m_sampleRate;
-  KeyFinder::KeyFinder m_keyFinder;
-  KeyFinder::Workspace m_workspace;
-  KeyFinder::AudioData m_audioData;
+  // KeyFinder::KeyFinder m_keyFinder;
+  // KeyFinder::Workspace m_workspace;
+  // KeyFinder::AudioData m_audioData;
 };

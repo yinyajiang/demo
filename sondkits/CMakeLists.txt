@@ -89,7 +89,7 @@ if(WIN32)
 
     set(keyfinder_base_path "${PROJECT_SOURCE_DIR}/3rd/libkeyfinder")
     target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/keyfinder.lib")
+    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/keyfinder.lib")
 
 else()
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
@@ -115,7 +115,7 @@ else()
     target_link_libraries(sondkits PRIVATE "${aubio_base_path}/lib/libaubio.dylib")
 
     target_include_directories(sondkits SYSTEM PRIVATE "${keyfinder_base_path}/src")
-    target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
+    #target_link_libraries(sondkits PRIVATE "${keyfinder_base_path}/lib/libkeyfinder.dylib")
 endif()
 
 # SoundTouch

@@ -11,31 +11,32 @@ KeyFilter::KeyFilter(std::shared_ptr<AudioDecoder> audio_decoder)
 
   m_sampleRate = audio_decoder->targetSampleRate();
 
-  m_audioData.setChannels(1);
-  m_audioData.setFrameRate(m_sampleRate);
+  // m_audioData.setChannels(1);
+  // m_audioData.setFrameRate(m_sampleRate);
 }
 
 KeyFilter::~KeyFilter() {}
 
 void KeyFilter::throughSink(uint8_t *data, int64_t size) {
-  auto num_samples = size / sizeof(float);
-  if (num_samples == 0) {
-    return;
-  }
-  if (m_audioData.getSampleCount() == 0) {
-    m_audioData.addToSampleCount(num_samples);
-  }
+  // auto num_samples = size / sizeof(float);
+  // if (num_samples == 0) {
+  //   return;
+  // }
+  // if (m_audioData.getSampleCount() == 0) {
+  //   m_audioData.addToSampleCount(num_samples);
+  // }
 
-  float *float_data = reinterpret_cast<float *>(data);
-  for (size_t i = 0; i < num_samples; ++i) {
-    m_audioData.setSample(i, float_data[i]);
-  }
-  m_keyFinder.progressiveChromagram(m_audioData, m_workspace);
+  // float *float_data = reinterpret_cast<float *>(data);
+  // for (size_t i = 0; i < num_samples; ++i) {
+  //   m_audioData.setSample(i, float_data[i]);
+  // }
+  // m_keyFinder.progressiveChromagram(m_audioData, m_workspace);
 }
 
 KeyFinder::key_t KeyFilter::getKey() {
-  m_keyFinder.finalChromagram(m_workspace);
-  return m_keyFinder.keyOfChromagram(m_workspace);
+  // m_keyFinder.finalChromagram(m_workspace);
+  // return m_keyFinder.keyOfChromagram(m_workspace);
+  return KeyFinder::key_t::A_MAJOR;
 }
 
 std::string KeyFilter::keyToString(KeyFinder::key_t key) {
