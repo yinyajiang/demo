@@ -192,6 +192,7 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
   std::unique_lock<SpinLock> lock(m_lock);
 
   while (m_dec_ctx && m_fmt_ctx) {
+    av_packet_unref(m_packet);
     int ret = av_read_frame(m_fmt_ctx, m_packet);
     if (ret < 0) {
       if (ret == AVERROR_EOF) {
@@ -199,6 +200,7 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
         if (avcodec_send_packet(m_dec_ctx, nullptr) >= 0) {
           while (avcodec_receive_frame(m_dec_ctx, m_frame) == 0) {
             frame_data_list.push_back(std::move(resampleFrame(m_frame)));
+            av_frame_unref(m_frame);
           }
         }
         auto swr_flush = flushSwr(true);
@@ -228,6 +230,7 @@ FrameDataList AudioDecoder::decodeNextFrameData() {
     // 接收解码帧
     while ((ret = avcodec_receive_frame(m_dec_ctx, m_frame)) == 0) {
       frame_data_list.push_back(std::move(resampleFrame(m_frame)));
+      av_frame_unref(m_frame);
     }
 
     if (frame_data_list.size() > 0) {
@@ -335,7 +338,7 @@ FrameData AudioDecoder::flushSwr(bool return_flush) {
     return FrameData{nullptr, 0};
   }
 
-  int64_t delay = swr_get_delay(m_swr_ctx, m_target_sample_rate);
+  int64_t delay = swr_get_delay(m_swr_ctx, m_dec_ctx->sample_rate);
   if (delay <= 0) {
     return FrameData{nullptr, 0};
   }

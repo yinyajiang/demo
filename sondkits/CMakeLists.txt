@@ -19,6 +19,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Multimedia)
 add_library(sondkits SHARED
   src/decode/audiodecoder.cpp
   src/decode/decodequeue.cpp
+  src/encode/audioencoder.cpp
   src/datasource/datasource.cpp
   src/datasource/decodedatasource.cpp
   src/datasource/filedatasource.cpp
@@ -34,8 +35,10 @@ add_library(sondkits SHARED
   src/audioplay.cpp
   src/audioplayer.cpp
 
+
   src/decode/audiodecoder.h
   src/decode/decodequeue.h
+  src/encode/audioencoder.h
   src/decode/decoder.h
   src/common/common.h
   src/common/audioutils.h
