@@ -4,12 +4,12 @@
 
 #define KEY_FILTER_HOP_SIZE 96
 
-KeyFilter::KeyFilter(std::shared_ptr<AudioDecoder> audio_decoder)
+KeyFilter::KeyFilter(int sample_rate, int channels, AVSampleFormat format)
     : AudioThroughFilter(KEY_FILTER_HOP_SIZE * sizeof(float), false) {
-  assert(audio_decoder->targetChannels() == 1);
-  assert(audio_decoder->targetSampleFormat() == AV_SAMPLE_FMT_FLT);
+  assert(channels == 1);
+  assert(format == AV_SAMPLE_FMT_FLT);
 
-  m_sampleRate = audio_decoder->targetSampleRate();
+  m_sampleRate = sample_rate;
 
   // m_audioData.setChannels(1);
   // m_audioData.setFrameRate(m_sampleRate);

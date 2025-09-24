@@ -5,14 +5,13 @@
 #define BPM_FILTER_HOP_SIZE 96
 #define BPM_FILTER_BUF_SIZE 512
 
-BPMFilter::BPMFilter(std::shared_ptr<AudioDecoder> audio_decoder)
-    : AudioThroughFilter(BPM_FILTER_HOP_SIZE * sizeof(float), true),
-      m_audio_decoder(audio_decoder) {
-  assert(m_audio_decoder->targetChannels() == 1);
-  assert(m_audio_decoder->targetSampleFormat() == AV_SAMPLE_FMT_FLT);
+BPMFilter::BPMFilter(int sample_rate, int channels, AVSampleFormat format)
+    : AudioThroughFilter(BPM_FILTER_HOP_SIZE * sizeof(float), true){
+  assert(channels == 1);
+  assert(format == AV_SAMPLE_FMT_FLT);
 
   m_tempo = new_aubio_tempo("default", BPM_FILTER_BUF_SIZE, BPM_FILTER_HOP_SIZE,
-                            audio_decoder->targetSampleRate());
+                            sample_rate);
 
   if (!m_tempo) {
     return;

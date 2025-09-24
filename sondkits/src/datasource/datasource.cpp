@@ -49,7 +49,7 @@ int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
         r = max_size;
         filterFlushReceiveRemaining(findNoFlushedFilterIndex(),data, &r);
       } else {
-        auto result = filterProcess(findNoFlushedFilterIndex(),data, &r);
+        auto result = filterProcess(0,data, &r);
         if (result == AUDIO_PROCESS_RESULT_AGAIN) {
           continue;
         }

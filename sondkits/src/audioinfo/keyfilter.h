@@ -9,7 +9,7 @@
 
 class KeyFilter : public AudioThroughFilter {
 public:
-  KeyFilter(std::shared_ptr<AudioDecoder> audio_decoder);
+  KeyFilter(int sample_rate, int channels, AVSampleFormat format);
   ~KeyFilter();
   void clear() override{};
   void throughSink(uint8_t *data, int64_t size) override;

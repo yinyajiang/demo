@@ -69,14 +69,23 @@ AudioPlay::AudioPlay(QAudioFormat audio_format,
           &AudioPlay::onStateChanged);
 }
 
-AudioPlay::~AudioPlay() {}
+AudioPlay::~AudioPlay() {
+  if (m_audio_sink) {
+    // 断开信号连接，防止析构过程中触发槽函数
+    disconnect(m_audio_sink.get(), &QAudioSink::stateChanged, this,
+               &AudioPlay::onStateChanged);
+    stop();
+  }
+}
 
 void AudioPlay::onStateChanged() {
-  emit signalStateChanged(m_audio_sink->state());
+  if (m_audio_sink) {
+    emit signalStateChanged(m_audio_sink->state());
+  }
 }
 
 void AudioPlay::play() {
-  if (!m_pcm_source) {
+  if (!m_pcm_source || !m_audio_sink) {
     return;
   }
   m_audio_sink->start(m_pcm_source.get());
@@ -89,18 +98,21 @@ void AudioPlay::play() {
 }
 
 void AudioPlay::stop() {
-  if (m_audio_sink->state() == QAudio::ActiveState) {
+  if (m_audio_sink && m_audio_sink->state() == QAudio::ActiveState) {
     m_audio_sink->stop();
   }
 }
 
 void AudioPlay::pause() {
-  if (m_audio_sink->state() == QAudio::ActiveState) {
+  if (m_audio_sink && m_audio_sink->state() == QAudio::ActiveState) {
     m_audio_sink->suspend();
   }
 }
 
 bool AudioPlay::isPlaying() {
+  if (!m_audio_sink) {
+    return false;
+  }
   return m_audio_sink->state() == QAudio::ActiveState ||
          m_audio_sink->state() == QAudio::IdleState;
 }

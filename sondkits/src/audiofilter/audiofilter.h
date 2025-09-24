@@ -14,7 +14,7 @@ public:
   virtual ~AudioFilter() = default;
   FilterProcessResult process(uint8_t *data, int64_t *size) {
     if (data && size && *size) {
-      m_flushed = false;
+      resetFlushed();
     }
     return realProcess(data, size);
   }
@@ -24,6 +24,7 @@ public:
   }
   virtual void reciveRemaining(uint8_t *data, int64_t *size) = 0;
   bool isFlushed() { return m_flushed; }
+  void resetFlushed() { m_flushed = false; }
   virtual void clear() = 0;
 
 protected:

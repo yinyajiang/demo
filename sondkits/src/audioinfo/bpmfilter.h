@@ -9,7 +9,7 @@ extern "C" {
 
 class BPMFilter: public AudioThroughFilter {
 public:
-    BPMFilter(std::shared_ptr<AudioDecoder> audio_decoder);
+    BPMFilter(int sample_rate, int channels, AVSampleFormat format);
     ~BPMFilter();
     void throughSink(uint8_t *data, int64_t size) override;
     float getBPM() const { return aubio_tempo_get_bpm(m_tempo); }
@@ -17,7 +17,6 @@ public:
 private:
     void reset();
 protected:
-    std::shared_ptr<AudioDecoder> m_audio_decoder;
     aubio_tempo_t *m_tempo;
     fvec_t *m_input_vec;
     fvec_t *m_output_vec;

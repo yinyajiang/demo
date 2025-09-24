@@ -67,6 +67,7 @@ target_include_directories(sondkits PRIVATE .
                         ./src/audioinfo)
 
 target_link_libraries(sondkits PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Multimedia)
+target_compile_definitions(sondkits PRIVATE SOUNDKITS_EXPORTS)
 
 include(GNUInstallDirs)
 install(TARGETS sondkits

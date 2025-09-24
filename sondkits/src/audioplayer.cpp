@@ -87,7 +87,7 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
           &AudioPlayer::onUpdateTimerTimeout);
 
   connect(m_audio_play.get(), &AudioPlay::signalStateChanged,
-          [this](QAudio::State state) { this->onStateChanged(state); });
+          this, &AudioPlayer::onStateChanged);
 }
 
 void AudioPlayer::play() {
@@ -139,34 +139,37 @@ void AudioPlayer::setSemitone(int semitone) {
   m_effects_filter->setSemitone(semitone);
 }
 
-AudioInfo AudioPlayer::fetchAudioInfo(QString fpath) {
+AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) {
   FetchAudioInfo fetch_audio_info;
-  auto info = fetch_audio_info.fetchAudioInfo(fpath.toStdWString());
+
+  FetchConfig fetch_config;
+  fetch_config.fetch_bpm = true;
+  fetch_config.fetch_key = true;
+  fetch_config.fetch_samples_num = fetch_samples_num;
+  auto info = fetch_audio_info.fetchAudioInfo(fpath.toStdWString(), fetch_config);
   AudioInfo audio_info;
   audio_info.bpm = info.bpm;
   audio_info.key = info.key;
-  audio_info.key_string = info.key_string;
+  audio_info.key_string = QString::fromStdString(info.key_string);
   audio_info.channels = info.channels;
   audio_info.sample_rate = info.sample_rate;
   audio_info.duration_seconds = info.duration_seconds;
-  audio_info.sample_format = info.sample_format;
+  audio_info.sample_format = QString::fromStdString(info.sample_format);
   audio_info.consume_time_ms = info.consume_time_ms;
+  audio_info.samples = info.samples;
   return audio_info;
 }
 
 void AudioPlayer::seek(int64_t time_ms) {
   auto isplaying = isPlaying();
   m_audio_play->pause();
-  // todo: 同步seek
   for (const auto &audio_decoder : m_audio_decoders) {
     audio_decoder->seek(time_ms);
   }
   if (m_compose_source) {
     m_compose_source->clear();
   }
-
   m_audio_play->setPlayedPositionMs(time_ms);
-
   if (isplaying) {
     m_audio_play->play();
   }
@@ -183,7 +186,7 @@ void AudioPlayer::onUpdateTimerTimeout() {
 void AudioPlayer::onStateChanged(int state_) {
   QAudio::State state = static_cast<QAudio::State>(state_);
   if ((state == QAudio::IdleState || state == QAudio::StoppedState) &&
-      m_compose_source->isEnd()) {
+    m_compose_source->isEnd()) {
     emit signalPlayFinished();
     m_update_timer.stop();
     qDebug() << "### play finished";

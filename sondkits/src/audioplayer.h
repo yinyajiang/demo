@@ -18,12 +18,13 @@
 struct AudioInfo {
   float bpm;
   int key;
-  std::string key_string;
+  QString key_string;
   int channels;
   int sample_rate;
   int duration_seconds;
-  std::string sample_format;
+  QString sample_format;
   int consume_time_ms;
+  std::vector<float> samples;
 };
 
 class AudioPlay;
@@ -39,7 +40,7 @@ public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  static SOUNDKITS_API AudioInfo fetchAudioInfo(QString fpath);
+  static SOUNDKITS_API AudioInfo fetchFullAudioInfo(QString fpath, int fetch_samples_num);
   void open(const std::vector<QString> &in_fpaths);
   void play();
   void pause();

@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 class AudioDecoder;
 
 struct AudioFileInfo {
@@ -14,6 +15,13 @@ struct AudioFileInfo {
   int duration_seconds;
   std::string sample_format;
   int consume_time_ms;
+  std::vector<float> samples;
+};
+
+struct FetchConfig {
+  bool fetch_bpm;
+  bool fetch_key;
+  int  fetch_samples_num;
 };
 
 class FetchAudioInfo {
@@ -21,7 +29,7 @@ public:
   FetchAudioInfo();
   ~FetchAudioInfo();
   void abort();
-  AudioFileInfo fetchAudioInfo(std::filesystem::path in_fpath);
+  AudioFileInfo fetchAudioInfo(std::filesystem::path in_fpath, FetchConfig config);
 
 private:
   float detectBPM(std::shared_ptr<AudioDecoder> audio_decoder);
