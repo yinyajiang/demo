@@ -11,7 +11,7 @@ public:
   ~NormSampleFilter();
   void clear() override{};
   void throughSink(uint8_t *data, int64_t size) override;
-  std::vector<float> getSamplePoints() const;
+  std::vector<float> getSamplePoints();
 
 protected:
   int64_t m_num_points;

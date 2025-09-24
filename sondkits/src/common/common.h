@@ -14,6 +14,7 @@
 #define WORKING_SAMPLE_AV_FORMAT AV_SAMPLE_FMT_FLT
 #define MAX_TEMPO 2.0f
 #define MIN_TEMPO 0.1f
+#define PLAYER_PROGRESS_TIMER_INTERVAL_MS 500
 
 class SpinLock {
 private:

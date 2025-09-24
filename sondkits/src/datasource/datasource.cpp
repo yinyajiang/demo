@@ -20,16 +20,22 @@ void DataSource::clear() {
   }
 }
 
-bool DataSource::waitHasData() {
+bool DataSource::waitHasData(std::chrono::milliseconds timeout) {
+  auto begin_time = std::chrono::steady_clock::now();
   bool is_end = false;
+  bool timeout_flag = false;
   while (1) {
     is_end = isEnd();
     if(is_end || bytesAvailable() > 0) {
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    if(std::chrono::steady_clock::now() - begin_time > timeout) {
+      timeout_flag = true;
+      break;
+    }
   }
-  return !is_end;
+  return !is_end && !timeout_flag;
 }
 
 int64_t DataSource::frameSize() const { return m_frame_size; }

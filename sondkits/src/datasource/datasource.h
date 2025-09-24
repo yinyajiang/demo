@@ -3,6 +3,7 @@
 #include "audiofilter.h"
 #include <memory>
 #include <vector>
+#include <chrono>
 
 class DataSource {
 public:
@@ -16,7 +17,7 @@ public:
   void abort();
   int64_t frameSize() const;
   virtual void clear();
-  bool waitHasData();
+  bool waitHasData(std::chrono::milliseconds timeout);
 
 protected:
   virtual void realClear() = 0;

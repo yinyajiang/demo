@@ -10,7 +10,7 @@
 #include <QtMultimedia/qaudio.h>
 
 AudioPlayer::AudioPlayer(QObject *parent)
-    : QObject(parent), m_audio_play(nullptr), m_effects_filter(nullptr),
+    : QObject(parent), m_audio_play(nullptr), m_com_effects_filter(nullptr),
       m_stoped(false) {}
 
 AudioPlayer::~AudioPlayer() {}
@@ -28,7 +28,7 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
     auto audio_decoder = std::make_shared<AudioDecoder>(
         WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
     audio_decoder->open(in_fpath);
-    m_audio_decoders.push_back(audio_decoder);
+    m_decoders.push_back(audio_decoder);
     m_max_duration_ms =
         std::max(m_max_duration_ms, audio_decoder->durationSecond() * 1000);
   }
@@ -54,27 +54,33 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
     assert(false);
   }
 
-  // filter
+  // compose filter
   AudioEffectsFilterConfig filter_config;
   filter_config.sample_rate = WORKING_SAMPLE_RATE;
   filter_config.channels = WORKING_CHANNELS;
   filter_config.format = WORKING_SAMPLE_AV_FORMAT;
   filter_config.max_tempo = MAX_TEMPO;
-  m_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
+  m_com_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
 
   // compose source
   m_compose_source = std::make_shared<ComposeDataSource>(
       audio_format.bytesPerFrame(), WORKING_SAMPLE_AV_FORMAT);
-  m_compose_source->addFilter(m_effects_filter);
+  m_compose_source->addFilter(m_com_effects_filter);
 
   // decode queue
-  for (const auto &audio_decoder : m_audio_decoders) {
+  for (const auto &audio_decoder : m_decoders) {
     auto decode_queue = std::make_shared<DecodeQueue>(audio_decoder);
     m_decode_queues.push_back(decode_queue);
     decode_queue->start();
 
     auto source = std::make_shared<DecodeDataSource>(
         audio_format.bytesPerFrame(), decode_queue);
+
+    // stream filter
+    auto stream_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
+    m_streams_effects_filters.push_back(stream_effects_filter);
+    source->addFilter(stream_effects_filter);
+    
     m_compose_source->addDataSource(source);
   }
 
@@ -82,7 +88,7 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
   m_audio_play =
       std::make_unique<AudioPlay>(audio_format, m_compose_source, this);
 
-  m_update_timer.setInterval(1000);
+  m_update_timer.setInterval(PLAYER_PROGRESS_TIMER_INTERVAL_MS);
   connect(&m_update_timer, &QTimer::timeout, this,
           &AudioPlayer::onUpdateTimerTimeout);
 
@@ -110,7 +116,7 @@ void AudioPlayer::stop() {
     m_audio_play->stop();
   }
   m_update_timer.stop();
-  for (const auto &audio_decoder : m_audio_decoders) {
+  for (const auto &audio_decoder : m_decoders) {
     audio_decoder->close();
   }
   for (const auto &decode_queue : m_decode_queues) {
@@ -125,18 +131,37 @@ bool AudioPlayer::isPlaying() {
   return false;
 }
 
-void AudioPlayer::setVolume(float volume) {
-  m_effects_filter->setVolume(volume, -1);
+void AudioPlayer::setVolume(int stream_index, float volume) {
+  if(stream_index >= m_streams_effects_filters.size()) {
+    return;
+  }
+  if (stream_index < 0) {
+    m_com_effects_filter->setVolume(volume, -1);
+  } else {
+    m_streams_effects_filters[stream_index]->setVolume(volume, -1);
+  }
 }
 
-void AudioPlayer::setVolumeBalance(float balance) {
-  m_effects_filter->setVolumeBalance(balance);
+void AudioPlayer::setVolumeBalance(int stream_index, float balance) {
+  if(stream_index >= m_streams_effects_filters.size()) {
+    return;
+  }
+  if (stream_index < 0) {
+    m_com_effects_filter->setVolumeBalance(balance);
+  } else {
+    m_streams_effects_filters[stream_index]->setVolumeBalance(balance);
+  }
 }
 
-void AudioPlayer::setTempo(float tempo) { m_effects_filter->setTempo(tempo); }
+void AudioPlayer::setTempo(float tempo) {
+  m_com_effects_filter->setTempo(tempo);
+  if (m_audio_play) {
+    m_audio_play->setTempo(tempo);
+  }
+}
 
 void AudioPlayer::setSemitone(int semitone) {
-  m_effects_filter->setSemitone(semitone);
+  m_com_effects_filter->setSemitone(semitone);
 }
 
 AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) {
@@ -162,14 +187,14 @@ AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) 
 
 void AudioPlayer::seek(int64_t time_ms) {
   m_audio_play->pause();
-  for (const auto &audio_decoder : m_audio_decoders) {
+  for (const auto &audio_decoder : m_decoders) {
     audio_decoder->seek(time_ms);
   }
   if (m_compose_source) {
     m_compose_source->clear();
   }
   m_audio_play->setPlayedPositionMs(time_ms);
-  m_compose_source->waitHasData();
+  m_compose_source->waitHasData(std::chrono::milliseconds(300));
   m_audio_play->play();
 }
 

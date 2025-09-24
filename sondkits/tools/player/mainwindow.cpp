@@ -104,63 +104,119 @@ void MainWindow::setupUI() {
   progressMainLayout->addStretch();
   progressMainLayout->addLayout(timelabelLayout);
 
-  // 音量控制组
-  auto volumeGroup = new QGroupBox("音量控制");
-  auto volumeLayout = new QHBoxLayout(volumeGroup);
+  // 音量控制组1
+  auto volumeGroup1 = new QGroupBox("音量控制1");
+  auto volumeLayout1 = new QHBoxLayout(volumeGroup1);
 
-  m_volumeLabel = new QLabel("音量:");
-  m_volumeSlider = new QSlider(Qt::Horizontal);
-  m_volumeSlider->setRange(0, 100);
-  m_volumeSlider->setValue(100);
-  m_volumeSlider->setFixedWidth(150);
+  m_volumeLabel1 = new QLabel("音量1:");
+  m_volumeSlider1 = new QSlider(Qt::Horizontal);
+  m_volumeSlider1->setRange(0, 100);
+  m_volumeSlider1->setValue(100);
+  m_volumeSlider1->setFixedWidth(150);
 
-  auto volumeValueLabel =
-      new QLabel(QString::number(m_volumeSlider->value()) + "%");
-  connect(m_volumeSlider, &QSlider::valueChanged,
-          [volumeValueLabel](int value) {
-            volumeValueLabel->setText(QString("%1%").arg(value));
-          });
+  auto volumeValueLabel1 =
+      new QLabel(QString::number(m_volumeSlider1->value()) + "%");
+  volumeLayout1->addWidget(m_volumeLabel1);
+  volumeLayout1->addWidget(m_volumeSlider1);
+  volumeLayout1->addWidget(volumeValueLabel1);
+  volumeLayout1->addStretch();
+  connect(m_volumeSlider1, &QSlider::valueChanged, [&](int value) {
+    onVolumeChanged(1, value);
+  });
 
-  volumeLayout->addWidget(m_volumeLabel);
-  volumeLayout->addWidget(m_volumeSlider);
-  volumeLayout->addWidget(volumeValueLabel);
-  volumeLayout->addStretch();
+  // 声道平衡控制组1
+  auto balanceGroup1 = new QGroupBox("声道平衡1");
+  auto balanceLayout1 = new QHBoxLayout(balanceGroup1);
 
-  connect(m_volumeSlider, &QSlider::valueChanged, this,
-          &MainWindow::onVolumeChanged);
-
-  // 声道平衡控制组
-  auto balanceGroup = new QGroupBox("声道平衡");
-  auto balanceLayout = new QHBoxLayout(balanceGroup);
-
-  auto balanceLabel = new QLabel("平衡:");
-  m_balanceSlider = new QSlider(Qt::Horizontal);
-  m_balanceSlider->setRange(-100, 100); // -100到100，0为中间
-  m_balanceSlider->setValue(0);
-  m_balanceSlider->setFixedWidth(150);
+  auto balanceLabel1 = new QLabel("平衡1:");
+  m_balanceSlider1 = new QSlider(Qt::Horizontal);
+  m_balanceSlider1->setRange(-100, 100); // -100到100，0为中间
+  m_balanceSlider1->setValue(0);
+  m_balanceSlider1->setFixedWidth(150);
 
   // 添加刻度标记
-  m_balanceSlider->setTickPosition(QSlider::TicksBelow);
-  m_balanceSlider->setTickInterval(50); // 每50个单位一个刻度
+  m_balanceSlider1->setTickPosition(QSlider::TicksBelow);
+  m_balanceSlider1->setTickInterval(50); // 每50个单位一个刻度
 
-  m_balanceValueLabel = new QLabel("0");
-  m_balanceValueLabel->setFixedWidth(30);
-
-  connect(m_balanceSlider, &QSlider::valueChanged, this,
-          &MainWindow::onBalanceChanged);
+  m_balanceValueLabel1 = new QLabel("0");
+  m_balanceValueLabel1->setFixedWidth(30);
+  connect(m_balanceSlider1, &QSlider::valueChanged, [&](int value) {
+    onBalanceChanged(1, value);
+  });
 
   // 添加左右标识
-  auto leftLabel = new QLabel("左");
-  leftLabel->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
-  auto rightLabel = new QLabel("右");
-  rightLabel->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
+  auto leftLabel1 = new QLabel("左1");
+  leftLabel1->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
+  auto rightLabel1 = new QLabel("右1");
+  rightLabel1->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
 
-  balanceLayout->addWidget(balanceLabel);
-  balanceLayout->addWidget(leftLabel);
-  balanceLayout->addWidget(m_balanceSlider);
-  balanceLayout->addWidget(rightLabel);
-  balanceLayout->addWidget(m_balanceValueLabel);
-  balanceLayout->addStretch();
+  balanceLayout1->addWidget(balanceLabel1);
+  balanceLayout1->addWidget(leftLabel1);
+  balanceLayout1->addWidget(m_balanceSlider1);
+  balanceLayout1->addWidget(rightLabel1);
+  balanceLayout1->addWidget(m_balanceValueLabel1);
+  balanceLayout1->addStretch();
+
+
+  // 音量控制组2
+  auto volumeGroup2 = new QGroupBox("音量控制2");
+  auto volumeLayout2 = new QHBoxLayout(volumeGroup2);
+  m_volumeLabel2 = new QLabel("音量2:");
+  m_volumeSlider2 = new QSlider(Qt::Horizontal);
+  m_volumeSlider2->setRange(0, 100);
+  m_volumeSlider2->setValue(100);
+  m_volumeSlider2->setFixedWidth(150);
+
+  auto volumeValueLabel2 =
+    new QLabel(QString::number(m_volumeSlider2->value()) + "%");
+  connect(m_volumeSlider2, &QSlider::valueChanged,
+        [volumeValueLabel2](int value) {
+          volumeValueLabel2->setText(QString("%1%").arg(value));
+        });
+
+  volumeLayout2->addWidget(m_volumeLabel2);
+  volumeLayout2->addWidget(m_volumeSlider2);
+  volumeLayout2->addWidget(volumeValueLabel2);
+  volumeLayout2->addStretch();
+
+  connect(m_volumeSlider2, &QSlider::valueChanged, [&](int value) {
+    onVolumeChanged(2, value);
+  });
+
+  // 声道平衡控制组2
+  auto balanceGroup2 = new QGroupBox("声道平衡2");
+  auto balanceLayout2 = new QHBoxLayout(balanceGroup2);
+
+  auto balanceLabel2 = new QLabel("平衡2:");
+  m_balanceSlider2 = new QSlider(Qt::Horizontal);
+  m_balanceSlider2->setRange(-100, 100); // -100到100，0为中间
+  m_balanceSlider2->setValue(0);
+  m_balanceSlider2->setFixedWidth(150);
+
+  // 添加刻度标记
+  m_balanceSlider2->setTickPosition(QSlider::TicksBelow);
+  m_balanceSlider2->setTickInterval(50); // 每50个单位一个刻度
+
+  m_balanceValueLabel2 = new QLabel("0");
+  m_balanceValueLabel2->setFixedWidth(30);
+
+  connect(m_balanceSlider2, &QSlider::valueChanged, [&](int value) {
+    onBalanceChanged(2, value);
+  });
+
+  // 添加左右标识
+  auto leftLabel2 = new QLabel("左2");
+  leftLabel2->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
+  auto rightLabel2 = new QLabel("右2");
+  rightLabel2->setStyleSheet("QLabel { font-size: 10px; color: gray; }");
+
+  balanceLayout2->addWidget(balanceLabel2);
+  balanceLayout2->addWidget(leftLabel2);
+  balanceLayout2->addWidget(m_balanceSlider2);
+  balanceLayout2->addWidget(rightLabel2);
+  balanceLayout2->addWidget(m_balanceValueLabel2);
+  balanceLayout2->addStretch();
+
 
   // 速度控制组
   auto tempoGroup = new QGroupBox("速度控制");
@@ -218,8 +274,10 @@ void MainWindow::setupUI() {
   mainLayout->addWidget(fileGroup);
   mainLayout->addWidget(controlGroup);
   mainLayout->addWidget(progressGroup);
-  mainLayout->addWidget(volumeGroup);
-  mainLayout->addWidget(balanceGroup);
+  mainLayout->addWidget(volumeGroup1);
+  mainLayout->addWidget(balanceGroup1);
+  mainLayout->addWidget(volumeGroup2);
+  mainLayout->addWidget(balanceGroup2);
   mainLayout->addWidget(tempoGroup);
   mainLayout->addWidget(semitoneGroup);
   mainLayout->addWidget(infoGroup);
@@ -297,16 +355,18 @@ void MainWindow::stop() {
   m_currentTimeLabel->setText("00:00");
 }
 
-void MainWindow::onVolumeChanged(int volume) {
-  if (m_player) {
-    m_player->setVolume(volume / 100.0);
-  }
+void MainWindow::onVolumeChanged(int stream_index, int volume) {
+  m_player->setVolume(stream_index - 1, volume / 100.0);
 }
 
-void MainWindow::onBalanceChanged(int balance) {
+void MainWindow::onBalanceChanged(int stream_index, int balance) {
   qreal balanceValue = balance / 100.0;
-  m_player->setVolumeBalance(balanceValue);
-  m_balanceValueLabel->setText(QString::number(balance));
+  m_player->setVolumeBalance(stream_index - 1, balanceValue);
+  if (stream_index == 1) {
+    m_balanceValueLabel1->setText(QString::number(balance));
+  } else {
+    m_balanceValueLabel2->setText(QString::number(balance));
+  }
 }
 
 void MainWindow::onTempoChanged(int tempo) {

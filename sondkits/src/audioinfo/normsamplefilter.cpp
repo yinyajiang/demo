@@ -30,7 +30,7 @@ NormSampleFilter::NormSampleFilter(int sample_rate, int channels,
 }
 
 NormSampleFilter::~NormSampleFilter() {
-  // 清理资源
+
 }
 
 void NormSampleFilter::throughSink(uint8_t *data, int64_t size) {
@@ -52,7 +52,7 @@ void NormSampleFilter::throughSink(uint8_t *data, int64_t size) {
   }
 }
 
-std::vector<float> NormSampleFilter::getSamplePoints() const {
+std::vector<float> NormSampleFilter::getSamplePoints()  {
   std::vector<float> result = m_sample_points;
   if(result.size() < static_cast<size_t>(m_num_points)) {
     result.resize(m_num_points, 0.0f);

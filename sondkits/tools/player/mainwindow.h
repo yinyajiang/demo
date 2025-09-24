@@ -29,8 +29,8 @@ private slots:
 
   void playPause();
   void stop();
-  void onVolumeChanged(int volume);
-  void onBalanceChanged(int balance);
+  void onVolumeChanged(int stream_index, int volume);
+  void onBalanceChanged(int stream_index, int balance);
   void onTempoChanged(int tempo);
   void onProgressSliderPressed();
   void onProgressSliderReleased();
@@ -64,12 +64,16 @@ private:
   QLabel *m_totalTimeLabel;
 
   // 音量控制组
-  QLabel *m_volumeLabel;
-  QSlider *m_volumeSlider;
+  QLabel *m_volumeLabel1;
+  QSlider *m_volumeSlider1;
+  QLabel *m_volumeLabel2;
+  QSlider *m_volumeSlider2;
 
   // 声道平衡控制组
-  QSlider *m_balanceSlider;
-  QLabel *m_balanceValueLabel;
+  QSlider *m_balanceSlider1;
+  QLabel *m_balanceValueLabel1;
+  QSlider *m_balanceSlider2;
+  QLabel *m_balanceValueLabel2;
 
   // 速度控制组
   QSlider *m_tempoSlider;

@@ -22,6 +22,7 @@ public:
   void pause();
   bool isPlaying();
   void setSinkVoulme(float volume);
+  void setTempo(float tempo);
   float sinkVolume();
   void saveAsPCMFile(const std::filesystem::path &file_path);
 
@@ -38,8 +39,7 @@ private:
   QAudioFormat m_audio_format;
   std::unique_ptr<QAudioSink> m_audio_sink;
   std::shared_ptr<PCMDataSourceDevice> m_pcm_source;
-  float m_volume;
-  float m_balance;
+  std::atomic<float> m_tempo;
 };
 
 class PCMDataSourceDevice : public QIODevice {

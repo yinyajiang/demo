@@ -48,8 +48,7 @@ qint64 PCMDataSourceDevice::getIOdevicePlayedBytes() const {
 
 AudioPlay::AudioPlay(QAudioFormat audio_format,
                      std::shared_ptr<DataSource> source, QObject *parent)
-    : QObject(parent), m_audio_format(audio_format), m_volume(1.0),
-      m_balance(0.0) {
+    : QObject(parent), m_audio_format(audio_format), m_tempo(1.0){
 
   auto audiodevice = QMediaDevices::defaultAudioOutput();
   if (!audiodevice.isFormatSupported(audio_format)) {
@@ -63,7 +62,7 @@ AudioPlay::AudioPlay(QAudioFormat audio_format,
   auto sinkBuff =
       audio_format.bytesPerFrame() * audio_format.sampleRate() * 100 / 1000;
   m_audio_sink->setBufferSize(sinkBuff * MAX_TEMPO);
-  m_audio_sink->setVolume(m_volume);
+  m_audio_sink->setVolume(1.0);
 
   connect(m_audio_sink.get(), &QAudioSink::stateChanged, this,
           &AudioPlay::onStateChanged);
@@ -118,13 +117,13 @@ bool AudioPlay::isPlaying() {
 }
 
 void AudioPlay::setSinkVoulme(float volume) {
-  m_volume = qBound(0.0f, volume, 1.0f); // 确保音量在合理范围内
+  auto sink_volume = qBound(0.0f, volume, 1.0f); // 确保音量在合理范围内
   if (m_audio_sink) {
-    m_audio_sink->setVolume(m_volume);
+    m_audio_sink->setVolume(sink_volume);
   }
 }
 
-float AudioPlay::sinkVolume() { return m_volume; }
+float AudioPlay::sinkVolume() { return m_audio_sink->volume(); }
 
 void AudioPlay::saveAsPCMFile(const std::filesystem::path &file_path) {
   std::ofstream file(file_path, std::ios::binary);
@@ -145,20 +144,28 @@ void AudioPlay::setPlayedPositionMs(int64_t position_ms) {
   auto bytes_per_second =
       m_audio_format.bytesPerFrame() * m_audio_format.sampleRate();
 
-  int64_t target_bytes =
-      static_cast<int64_t>(position_ms * bytes_per_second / 1000);
+  int64_t original_time_ms = static_cast<int64_t>(position_ms / m_tempo.load());
+  int64_t target_bytes = static_cast<int64_t>(original_time_ms * bytes_per_second / 1000);
+  
   if (m_pcm_source) {
     m_pcm_source->setIODevicePlayedBytes(target_bytes);
   }
+}
+
+void AudioPlay::setTempo(float tempo) {
+  int64_t cur_position_ms = getPlayedPositionMs();
+  m_tempo.store(tempo);
+  setPlayedPositionMs(cur_position_ms);
 }
 
 int64_t AudioPlay::getPlayedPositionMs() const {
   int64_t bytes_per_second =
       m_audio_format.bytesPerFrame() * m_audio_format.sampleRate();
   int64_t position_ms = 0;
-  if (bytes_per_second > 0) {
+  if (bytes_per_second > 0 && m_pcm_source) {
     int64_t played_bytes = m_pcm_source->getIOdevicePlayedBytes();
-    position_ms = played_bytes * 1000 / bytes_per_second;
+    int64_t original_time_ms = played_bytes * 1000 / bytes_per_second;
+    position_ms = static_cast<int64_t>(original_time_ms * m_tempo.load());
   }
   return position_ms;
 }

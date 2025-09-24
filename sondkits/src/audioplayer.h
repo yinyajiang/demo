@@ -48,8 +48,8 @@ public:
   bool isPlaying();
   int64_t duration();
   void seek(int64_t time_ms);
-  void setVolume(float volume);
-  void setVolumeBalance(float balance);
+  void setVolume(int stream_index, float volume);
+  void setVolumeBalance(int stream_index, float balance);
   void setTempo(float tempo);
   void setSemitone(int semitone);
 
@@ -63,9 +63,10 @@ private slots:
 
 private:
   std::unique_ptr<AudioPlay> m_audio_play;
-  std::shared_ptr<AudioEffectsFilter> m_effects_filter;
+  std::shared_ptr<AudioEffectsFilter> m_com_effects_filter;
+  std::vector<std::shared_ptr<AudioEffectsFilter>> m_streams_effects_filters;
 
-  std::vector<std::shared_ptr<AudioDecoder>> m_audio_decoders;
+  std::vector<std::shared_ptr<AudioDecoder>> m_decoders;
   std::vector<std::shared_ptr<DecodeQueue>> m_decode_queues;
 
   std::shared_ptr<ComposeDataSource> m_compose_source;
