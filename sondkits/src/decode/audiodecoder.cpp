@@ -8,6 +8,7 @@ extern "C" {
 #include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
 }
+#include <mutex>
 
 AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
                            AVSampleFormat target_sample_format)

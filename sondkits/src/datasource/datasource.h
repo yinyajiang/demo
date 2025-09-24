@@ -16,6 +16,7 @@ public:
   void abort();
   int64_t frameSize() const;
   virtual void clear();
+  bool waitHasData();
 
 protected:
   virtual void realClear() = 0;

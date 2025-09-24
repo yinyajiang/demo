@@ -161,7 +161,6 @@ AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) 
 }
 
 void AudioPlayer::seek(int64_t time_ms) {
-  auto isplaying = isPlaying();
   m_audio_play->pause();
   for (const auto &audio_decoder : m_audio_decoders) {
     audio_decoder->seek(time_ms);
@@ -170,9 +169,8 @@ void AudioPlayer::seek(int64_t time_ms) {
     m_compose_source->clear();
   }
   m_audio_play->setPlayedPositionMs(time_ms);
-  if (isplaying) {
-    m_audio_play->play();
-  }
+  m_compose_source->waitHasData();
+  m_audio_play->play();
 }
 
 void AudioPlayer::onUpdateTimerTimeout() {

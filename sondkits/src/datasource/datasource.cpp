@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QtGlobal>
+#include <thread>
 
 DataSource::DataSource(int64_t frame_size)
     : m_frame_size(frame_size), m_aborted(false) {}
@@ -17,6 +18,18 @@ void DataSource::clear() {
   for (auto &filter : m_audio_filters) {
     filter->clear();
   }
+}
+
+bool DataSource::waitHasData() {
+  bool is_end = false;
+  while (1) {
+    is_end = isEnd();
+    if(is_end || bytesAvailable() > 0) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  return !is_end;
 }
 
 int64_t DataSource::frameSize() const { return m_frame_size; }

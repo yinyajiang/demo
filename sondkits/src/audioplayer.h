@@ -40,7 +40,7 @@ public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  static SOUNDKITS_API AudioInfo fetchFullAudioInfo(QString fpath, int fetch_samples_num);
+  static  AudioInfo fetchFullAudioInfo(QString fpath, int fetch_samples_num);
   void open(const std::vector<QString> &in_fpaths);
   void play();
   void pause();

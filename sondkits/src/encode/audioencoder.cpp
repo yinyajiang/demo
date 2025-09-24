@@ -7,10 +7,12 @@ extern "C" {
 #include <libswresample/swresample.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/opt.h>
+#include <libavformat/avformat.h>
 }
 #include "audioutils.h"
 #include "common.h"
 #include <iostream>
+#include <mutex>
 
 AudioEncoder::AudioEncoder() : m_codec_ctx(nullptr), m_format_ctx(nullptr), m_swr_ctx(nullptr), m_frame(nullptr), m_packet(nullptr), m_next_pts(0) {}
 
@@ -22,7 +24,7 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
   std::unique_lock<SpinLock> lock(m_lock);
   m_next_pts = 0;
 
-  avformat_alloc_output_context2(&m_format_ctx, nullptr, nullptr, file_path.c_str());
+  avformat_alloc_output_context2(&m_format_ctx, nullptr, nullptr, fs2u8(file_path).c_str());
   if (!m_format_ctx) {
     throw std::runtime_error("Failed to allocate output context");
   }
@@ -56,8 +58,8 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
    m_codec_ctx->sample_fmt = config.out_sample_format;
    m_codec_ctx->sample_rate = config.out_sample_rate;
    av_channel_layout_default(&m_codec_ctx->ch_layout, config.out_channels);
-   m_codec_ctx->time_base = (AVRational){1, m_codec_ctx->sample_rate};
-   m_codec_ctx->pkt_timebase = (AVRational){1, m_codec_ctx->sample_rate};
+   m_codec_ctx->time_base = av_make_q(1, m_codec_ctx->sample_rate);
+   m_codec_ctx->pkt_timebase = m_codec_ctx->time_base;
 
    initSwr();
    m_frame = av_frame_alloc();
@@ -85,7 +87,7 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
    stream->time_base = m_codec_ctx->time_base;
 
    if (!(m_format_ctx->oformat->flags & AVFMT_NOFILE)) {
-     ret = avio_open(&m_format_ctx->pb, file_path.c_str(), AVIO_FLAG_WRITE);
+     ret = avio_open(&m_format_ctx->pb, fs2u8(file_path).c_str(), AVIO_FLAG_WRITE);
      if (ret < 0) {
        throw std::runtime_error("Failed to open output: " + avErr2String(ret));
      }
@@ -280,7 +282,7 @@ AVFrame *AudioEncoder::resample2Frame(uint8_t *data, int size) {
     m_frame->nb_samples = out_nb_samples;
 
     m_next_pts +=
-        av_rescale_q(out_nb_samples, (AVRational){1, m_config.out_sample_rate},
+        av_rescale_q(out_nb_samples, av_make_q(1, m_config.out_sample_rate),
                      m_codec_ctx->time_base);
     
     if (av_sample_fmt_is_planar(m_config.out_sample_format)) {
@@ -333,7 +335,7 @@ AVFrame* AudioEncoder::flushSwr() {
     m_frame->pts = m_next_pts;
     m_frame->nb_samples = out_nb_samples;
     m_next_pts +=
-        av_rescale_q(out_nb_samples, (AVRational){1, m_codec_ctx->sample_rate},
+        av_rescale_q(out_nb_samples, av_make_q(1, m_codec_ctx->sample_rate),
                      m_codec_ctx->time_base);
     
     if (av_sample_fmt_is_planar(m_codec_ctx->sample_fmt)) {

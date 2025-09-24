@@ -1,5 +1,6 @@
 #pragma once
 #include <list>
+#include <functional>
 
 struct FrameData {
   uint8_t *data;
@@ -22,7 +23,7 @@ public:
 
 protected:
   void resumeDecodable() {
-    if (m_resume_decodable_cb && !isEnd()) {
+    if (m_resume_decodable_cb) {
       m_resume_decodable_cb();
     }
   }
