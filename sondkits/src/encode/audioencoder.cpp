@@ -14,12 +14,17 @@ extern "C" {
 #include <iostream>
 #include <mutex>
 
-AudioEncoder::AudioEncoder() : m_codec_ctx(nullptr), m_format_ctx(nullptr), m_swr_ctx(nullptr), m_frame(nullptr), m_packet(nullptr), m_next_pts(0) {}
+AudioEncoder::AudioEncoder() : m_codec_ctx(nullptr), m_format_ctx(nullptr), m_swr_ctx(nullptr), m_frame(nullptr), m_packet(nullptr), m_next_pts(0){}
 
 AudioEncoder::~AudioEncoder() { close(); }
 
 void AudioEncoder::open(const std::filesystem::path &file_path,
                         AudioEncoderConfig config) {
+
+  // 验证配置
+  if (!config.isValid()) {
+    throw std::runtime_error("Invalid AudioEncoderConfig");
+  }
 
   std::unique_lock<SpinLock> lock(m_lock);
   m_next_pts = 0;
@@ -42,8 +47,12 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
     }
    auto codec = avcodec_find_encoder(config.out_codec_id);
    if(!codec) {
-    throw std::runtime_error("Failed to find encoder");
+    throw std::runtime_error("Failed to find encoder for codec ID: " + std::to_string(config.out_codec_id));
    }
+   
+   // 对于常见格式进行基本检查
+   // 注意：在新版本FFmpeg中应使用avcodec_get_supported_config
+   // 这里为了兼容性暂时跳过详细的格式支持检查
 
    AVStream *stream = avformat_new_stream(m_format_ctx, nullptr);
    if(!stream) {
@@ -76,37 +85,31 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
    m_frame->sample_rate = m_config.out_sample_rate;
    m_next_pts = 0;
 
-   auto ret = avcodec_open2(m_codec_ctx, codec, nullptr);
-   if (ret < 0) {
-    throw std::runtime_error("Failed to open codec: " + avErr2String(ret));
+   auto codec_ret = avcodec_open2(m_codec_ctx, codec, nullptr);
+   if (codec_ret < 0) {
+    throw std::runtime_error("Failed to open codec: " + avErr2String(codec_ret));
    }
-   ret = avcodec_parameters_from_context(stream->codecpar, m_codec_ctx);
-   if (ret < 0) {
-    throw std::runtime_error("Failed to copy codec parameters: " + avErr2String(ret));
+   auto param_ret = avcodec_parameters_from_context(stream->codecpar, m_codec_ctx);
+   if (param_ret < 0) {
+    throw std::runtime_error("Failed to copy codec parameters: " + avErr2String(param_ret));
    }
    stream->time_base = m_codec_ctx->time_base;
 
    if (!(m_format_ctx->oformat->flags & AVFMT_NOFILE)) {
-     ret = avio_open(&m_format_ctx->pb, fs2u8(file_path).c_str(), AVIO_FLAG_WRITE);
-     if (ret < 0) {
-       throw std::runtime_error("Failed to open output: " + avErr2String(ret));
+     auto io_ret = avio_open(&m_format_ctx->pb, fs2u8(file_path).c_str(), AVIO_FLAG_WRITE);
+     if (io_ret < 0) {
+       throw std::runtime_error("Failed to open output: " + avErr2String(io_ret));
      }
    }
 
-   ret = avformat_write_header(m_format_ctx, nullptr);
-   if (ret < 0) {
-    throw std::runtime_error("Failed to write header: " + avErr2String(ret));
+   auto header_ret = avformat_write_header(m_format_ctx, nullptr);
+   if (header_ret < 0) {
+    throw std::runtime_error("Failed to write header: " + avErr2String(header_ret));
    }
 }
 
 void AudioEncoder::close() {
     std::unique_lock<SpinLock> lock(m_lock);
-    if (m_format_ctx) {
-        av_write_trailer(m_format_ctx);
-        if (!(m_format_ctx->oformat->flags & AVFMT_NOFILE) && m_format_ctx->pb) {
-            avio_closep(&m_format_ctx->pb);
-        }
-    }
     if (m_format_ctx) {
         avformat_free_context(m_format_ctx);
         m_format_ctx = nullptr;
@@ -133,6 +136,12 @@ void AudioEncoder::encodeData(uint8_t *data, int size) {
     if (!data || size <= 0) {
       return;
     }
+    {
+        std::unique_lock<SpinLock> lock(m_lock);
+        if (!m_codec_ctx || !m_format_ctx) {
+            return;
+        }
+    }
     AVFrame *frame = resample2Frame(data, size);
     encodeData(frame);
 }
@@ -146,21 +155,25 @@ void AudioEncoder::encodeData(AVFrame *frame) {
         return;
     }
 
-    avcodec_send_frame(m_codec_ctx, frame);
+    auto ret = avcodec_send_frame(m_codec_ctx, frame);
+    if (ret < 0 && ret != AVERROR(EAGAIN)) {
+        std::cerr << "Error sending frame: " << avErr2String(ret) << std::endl;
+        return;
+    }
     while (m_codec_ctx) {
-        auto ret = avcodec_receive_packet(m_codec_ctx, m_packet);
-        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        auto packet_ret = avcodec_receive_packet(m_codec_ctx, m_packet);
+        if (packet_ret == AVERROR(EAGAIN) || packet_ret == AVERROR_EOF) {
             break;
-        }else if (ret < 0) {
-            std::cerr << "Error receiving packet: " << avErr2String(ret) << std::endl;
+        }else if (packet_ret < 0) {
+            std::cerr << "Error receiving packet: " << avErr2String(packet_ret) << std::endl;
             break;
         }
         av_packet_rescale_ts(m_packet, m_codec_ctx->time_base,
                                 m_format_ctx->streams[0]->time_base);
         m_packet->stream_index = m_format_ctx->streams[0]->index;
-        ret = av_interleaved_write_frame(m_format_ctx, m_packet);
-        if (ret < 0) {
-            std::cerr << "Error writing packet: " << avErr2String(ret) << std::endl;
+        auto write_ret = av_interleaved_write_frame(m_format_ctx, m_packet);
+        if (write_ret < 0) {
+            std::cerr << "Error writing packet: " << avErr2String(write_ret) << std::endl;
             break;
         }
         av_packet_unref(m_packet);
@@ -182,22 +195,29 @@ void AudioEncoder::flush() {
       return;
     }
     while (m_codec_ctx) {
-      auto ret = avcodec_receive_packet(m_codec_ctx, m_packet);
-      if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+      auto flush_packet_ret = avcodec_receive_packet(m_codec_ctx, m_packet);
+      if (flush_packet_ret == AVERROR(EAGAIN) || flush_packet_ret == AVERROR_EOF) {
         break;
-      } else if (ret < 0) {
-        std::cerr << "Error receiving packet: " << avErr2String(ret) << std::endl;
+      } else if (flush_packet_ret < 0) {
+        std::cerr << "Error receiving packet: " << avErr2String(flush_packet_ret) << std::endl;
         break;
       }
       av_packet_rescale_ts(m_packet, m_codec_ctx->time_base,
                            m_format_ctx->streams[0]->time_base);
       m_packet->stream_index = m_format_ctx->streams[0]->index;
-      ret = av_interleaved_write_frame(m_format_ctx, m_packet);
-      if (ret < 0) {
-        std::cerr << "Error writing packet: " << avErr2String(ret) << std::endl;
+      auto flush_write_ret = av_interleaved_write_frame(m_format_ctx, m_packet);
+      if (flush_write_ret < 0) {
+        std::cerr << "Error writing packet: " << avErr2String(flush_write_ret) << std::endl;
         break;
       }
       av_packet_unref(m_packet);
+    }
+    
+    if (m_format_ctx) {
+        auto trailer_ret = av_write_trailer(m_format_ctx);
+        if (trailer_ret < 0) {
+            std::cerr << "Error writing trailer: " << avErr2String(trailer_ret) << std::endl;
+        }
     }
 }
 
@@ -226,7 +246,7 @@ void AudioEncoder::initSwr() {
 }
 
 AVFrame *AudioEncoder::resample2Frame(uint8_t *data, int size) {
-    if (!data || size <= 0) {
+    if (!data || size <= 0 || !m_swr_ctx) {
       return nullptr;
     }
     int in_sample_size = av_get_bytes_per_sample(m_config.in_sample_format);
@@ -270,7 +290,7 @@ AVFrame *AudioEncoder::resample2Frame(uint8_t *data, int size) {
     int out_nb_samples = swr_convert(m_swr_ctx, m_frame->data, out_samples, 
                                    in_data, in_nb_samples);
     
-    av_free(in_data);
+    av_freep((void**)&in_data);
     
     if (out_nb_samples <= 0) {
       std::cerr << "swr_convert failed: " << out_nb_samples << std::endl;

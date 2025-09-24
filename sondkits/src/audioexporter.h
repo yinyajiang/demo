@@ -33,7 +33,6 @@ public:
   void setTempo(float tempo);
   void setSemitone(int semitone);
   void exportFile(const std::filesystem::path &out_fpath);
-;
 private:
   std::shared_ptr<AudioEffectsFilter> m_com_effects_filter;
   std::vector<std::shared_ptr<AudioEffectsFilter>> m_streams_effects_filters;
