@@ -3,7 +3,7 @@
 #include <QtCore/QFileInfo>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
-
+#include "audioexporter.h"
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_player(nullptr), m_isPlaying(false),
       m_isSliderPressed(false), m_totalDuration(0.0) {
@@ -11,10 +11,12 @@ MainWindow::MainWindow(QWidget *parent)
   setFixedSize(500, 800);
   setupUI();
 
-  // 创建音频组件
   m_player = std::make_unique<AudioPlayer>(this);
   QObject::connect(m_player.get(), &AudioPlayer::signalTimeProgress, this,
                    &MainWindow::onTimeProgress);
+
+  m_exporter = std::make_unique<AudioExporter>();
+
 
   // 连接信号
   // connect(m_player, &AudioPlayer::stateChanged, this,
@@ -62,17 +64,23 @@ void MainWindow::setupUI() {
 
   m_playPauseButton = new QPushButton("播放");
   m_stopButton = new QPushButton("停止");
-
+  m_exportButtonMP3 = new QPushButton("导出MP3");
+  m_exportButtonWAV = new QPushButton("导出WAV");
+  
   m_playPauseButton->setEnabled(false);
   m_stopButton->setEnabled(false);
 
   controlLayout->addWidget(m_playPauseButton);
   controlLayout->addWidget(m_stopButton);
+  controlLayout->addWidget(m_exportButtonMP3);
+  controlLayout->addWidget(m_exportButtonWAV);
   controlLayout->addStretch();
 
   connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::stop);
   connect(m_playPauseButton, &QPushButton::clicked, this,
           &MainWindow::playPause);
+  connect(m_exportButtonMP3, &QPushButton::clicked, [this]() { onExport("mp3"); });
+  connect(m_exportButtonWAV, &QPushButton::clicked, [this]() { onExport("wav"); });
 
   // 播放进度组
   auto progressGroup = new QGroupBox("播放进度");
@@ -284,7 +292,7 @@ void MainWindow::setupUI() {
   mainLayout->addStretch();
 
   // 状态栏
-  m_statusLabel = new QLabel("准备就绪");
+  m_statusLabel = new QLabel("");
   statusBar()->addWidget(m_statusLabel);
 }
 
@@ -374,15 +382,9 @@ void MainWindow::onTempoChanged(int tempo) {
   m_tempoValueLabel->setText(QString::number(tempo / 100.0));
 }
 
-void MainWindow::onPlayerStateChanged() {}
 
-void MainWindow::onDecoderError(const QString &message) {
-  QMessageBox::warning(this, "解码错误", message);
-  m_statusLabel->setText("解码错误");
-}
 
 void MainWindow::onTimeProgress(int64_t time_seconds) {
-  // 更新播放进度（只有在用户不拖动进度条时才更新）
   if (!m_isSliderPressed && m_totalDuration > 0 && m_player) {
     int sliderValue = (int)((time_seconds / m_totalDuration) * 1000);
     m_progressSlider->setValue(sliderValue);
@@ -403,7 +405,6 @@ void MainWindow::onProgressSliderPressed() { m_isSliderPressed = true; }
 
 void MainWindow::onProgressSliderReleased() {
   m_isSliderPressed = false;
-
   if (m_totalDuration > 0) {
     double position =
         (double)m_progressSlider->value() / 1000 * m_totalDuration;
@@ -413,7 +414,6 @@ void MainWindow::onProgressSliderReleased() {
 }
 
 void MainWindow::onProgressSliderMoved(int value) {
-  // 在拖动时实时显示时间
   if (m_totalDuration > 0) {
     double position = (double)value / 1000.0 * m_totalDuration;
     m_currentTimeLabel->setText(formatTime(position));
@@ -423,4 +423,22 @@ void MainWindow::onProgressSliderMoved(int value) {
 void MainWindow::onSemitoneChanged(int semitone) {
   m_player->setSemitone(semitone);
   m_semitoneValueLabel->setText(QString::number(semitone));
+}
+
+void MainWindow::onExport(QString ext) {
+  try{
+    m_exporter->open(std::vector<std::filesystem::path>{m_file1.toStdWString(), m_file2.toStdWString()});
+    m_exporter->setTempo(m_tempoSlider->value() / 100.0);
+    m_exporter->setSemitone(m_semitoneSlider->value());
+    m_exporter->setVolume(0, m_volumeSlider1->value() / 100.0);
+    m_exporter->setVolume(1, m_volumeSlider2->value() / 100.0);
+    m_exporter->setVolumeBalance(0, m_balanceSlider1->value() / 100.0);
+    m_exporter->setVolumeBalance(1, m_balanceSlider2->value() / 100.0);
+    
+    std::filesystem::path out_path = m_file1.toStdWString() + L"." + ext.toStdWString();
+    m_exporter->exportFile(out_path);
+    m_statusLabel->setText("导出成功");
+  } catch (const std::exception &e) {
+    QMessageBox::warning(this, "导出错误", e.what());
+  }
 }

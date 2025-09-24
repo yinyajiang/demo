@@ -16,6 +16,7 @@
 #include <QtWidgets/QWidget>
 
 #include "audioplayer.h"
+#include "audioexporter.h"
 
 class MainWindow : public QMainWindow {
   Q_OBJECT
@@ -35,10 +36,9 @@ private slots:
   void onProgressSliderPressed();
   void onProgressSliderReleased();
   void onProgressSliderMoved(int value);
-  void onPlayerStateChanged();
-  void onDecoderError(const QString &message);
   void onTimeProgress(int64_t time_seconds);
   void onSemitoneChanged(int semitone);
+  void onExport(QString ext);
 
 private:
   void setupUI();
@@ -57,6 +57,8 @@ private:
   // 播放控制组
   QPushButton *m_playPauseButton;
   QPushButton *m_stopButton;
+  QPushButton *m_exportButtonMP3;
+  QPushButton *m_exportButtonWAV;
 
   // 进度控制组
   QSlider *m_progressSlider;
@@ -92,6 +94,7 @@ private:
 
   // 音频处理
   std::unique_ptr<AudioPlayer> m_player;
+  std::unique_ptr<AudioExporter> m_exporter;
 
   // 状态
   QString m_currentFile;

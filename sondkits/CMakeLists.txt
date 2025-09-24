@@ -35,6 +35,7 @@ add_library(sondkits SHARED
   src/common/audioutils.cpp
   src/audioplay.cpp
   src/audioplayer.cpp
+  src/audioexporter.cpp
 
 
   src/decode/audiodecoder.h
@@ -58,6 +59,7 @@ add_library(sondkits SHARED
   src/audioinfo/normsamplefilter.h
   src/audioplay.h
   src/audioplayer.h
+  src/audioexporter.h
 
 )
 target_include_directories(sondkits PRIVATE . 
@@ -66,7 +68,8 @@ target_include_directories(sondkits PRIVATE .
                         ./src/decode
                         ./src/datasource
                         ./src/audiofilter
-                        ./src/audioinfo)
+                        ./src/audioinfo
+                        ./src/encode)
 
 target_link_libraries(sondkits PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Multimedia)
 target_compile_definitions(sondkits PRIVATE SOUNDKITS_EXPORTS)
