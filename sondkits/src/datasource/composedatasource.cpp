@@ -1,5 +1,4 @@
 #include "composedatasource.h"
-#include "mixaudio.h"
 #include <QDebug>
 #include <algorithm>
 
@@ -7,7 +6,6 @@ ComposeDataSource::ComposeDataSource(int64_t frame_size,
                                      AVSampleFormat sample_format)
     : DataSource(frame_size), m_sample_format(sample_format) {
   assert(sample_format == AV_SAMPLE_FMT_FLT);
-  m_mix_audio = std::make_shared<MixAudio>();
 }
 
 void ComposeDataSource::addDataSource(std::shared_ptr<DataSource> data_source) {
@@ -47,16 +45,44 @@ int64_t ComposeDataSource::realReadData(uint8_t *data, int64_t max_size) {
   }
 
   std::vector<uint8_t> temp_buffer(read_size);
-  while (it != m_data_sources.end()) {
-    auto size = (*it)->readData(temp_buffer.data(), read_size);
-    ++it;
-    if (size != read_size) {
-      continue;
-    }
-    m_mix_audio->mix<float>(data, temp_buffer.data(), read_size,
-                            MixAudio::MIX_MODE_SOFT_CLIP);
+  if (m_data_sources.size() == 2) {
+    while (it != m_data_sources.end()) {
+      auto size = (*it)->readData(temp_buffer.data(), read_size);
+      ++it;
+      if (size != read_size) {
+        continue;
+      }
 
+      float *dst = reinterpret_cast<float *>(data);
+      float *src = reinterpret_cast<float *>(temp_buffer.data());
+      int count = size / sizeof(float);
+      for (int i = 0; i < count; i++) {
+        dst[i] = (dst[i] + src[i]) / 2;
+      }
+    }
+  } else {
+    bool first = true;
+    float den = float(m_data_sources.size());
+    while (it != m_data_sources.end()) {
+      auto size = (*it)->readData(temp_buffer.data(), read_size);
+      ++it;
+      if (size != read_size) {
+        continue;
+      }
+      float *dst = reinterpret_cast<float *>(data);
+      float *src = reinterpret_cast<float *>(temp_buffer.data());
+      int count = size / sizeof(float);
+      for (int i = 0; i < count; i++) {
+        if (first) {
+          dst[i] = dst[i] / den + src[i] / den;
+        } else {
+          dst[i] += src[i] / den;
+        }
+      }
+      first = false;
+    }
   }
+
   return read_size;
 }
 

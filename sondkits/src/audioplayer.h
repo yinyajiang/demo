@@ -1,9 +1,11 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 #include <QTimer>
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 #ifdef _WIN32
 #ifdef SOUNDKITS_EXPORTS
@@ -40,7 +42,7 @@ public:
   explicit AudioPlayer(QObject *parent = nullptr);
   ~AudioPlayer();
 
-  static  AudioInfo fetchFullAudioInfo(QString fpath, int fetch_samples_num);
+  static AudioInfo fetchFullAudioInfo(QString fpath, int fetch_samples_num);
   void open(const std::vector<QString> &in_fpaths);
   void play();
   void pause();

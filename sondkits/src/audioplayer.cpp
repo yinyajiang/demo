@@ -3,7 +3,6 @@
 #include "audioeffectsfilter.h"
 #include "audioinfo.h"
 #include "audioplay.h"
-#include "audioutils.h"
 #include "composedatasource.h"
 #include "decodedatasource.h"
 #include <QDebug>
@@ -77,10 +76,11 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
         audio_format.bytesPerFrame(), decode_queue);
 
     // stream filter
-    auto stream_effects_filter = std::make_shared<AudioEffectsFilter>(filter_config);
+    auto stream_effects_filter =
+        std::make_shared<AudioEffectsFilter>(filter_config);
     m_streams_effects_filters.push_back(stream_effects_filter);
     source->addFilter(stream_effects_filter);
-    
+
     m_compose_source->addDataSource(source);
   }
 
@@ -92,8 +92,8 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
   connect(&m_update_timer, &QTimer::timeout, this,
           &AudioPlayer::onUpdateTimerTimeout);
 
-  connect(m_audio_play.get(), &AudioPlay::signalStateChanged,
-          this, &AudioPlayer::onStateChanged);
+  connect(m_audio_play.get(), &AudioPlay::signalStateChanged, this,
+          &AudioPlayer::onStateChanged);
 }
 
 void AudioPlayer::play() {
@@ -132,7 +132,7 @@ bool AudioPlayer::isPlaying() {
 }
 
 void AudioPlayer::setVolume(int stream_index, float volume) {
-  if(stream_index >= m_streams_effects_filters.size()) {
+  if (stream_index >= m_streams_effects_filters.size()) {
     return;
   }
   if (stream_index < 0) {
@@ -143,7 +143,7 @@ void AudioPlayer::setVolume(int stream_index, float volume) {
 }
 
 void AudioPlayer::setVolumeBalance(int stream_index, float balance) {
-  if(stream_index >= m_streams_effects_filters.size()) {
+  if (stream_index >= m_streams_effects_filters.size()) {
     return;
   }
   if (stream_index < 0) {
@@ -164,14 +164,18 @@ void AudioPlayer::setSemitone(int semitone) {
   m_com_effects_filter->setSemitone(semitone);
 }
 
-AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) {
+int64_t AudioPlayer::duration() { return m_max_duration_ms; }
+
+AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath,
+                                          int fetch_samples_num) {
   FetchAudioInfo fetch_audio_info;
 
   FetchConfig fetch_config;
   fetch_config.fetch_bpm = true;
   fetch_config.fetch_key = true;
   fetch_config.fetch_point_num = fetch_samples_num;
-  auto info = fetch_audio_info.fetchAudioInfo(fpath.toStdWString(), fetch_config);
+  auto info =
+      fetch_audio_info.fetchAudioInfo(fpath.toStdWString(), fetch_config);
   AudioInfo audio_info;
   audio_info.bpm = info.bpm;
   audio_info.key = info.key;
@@ -209,7 +213,7 @@ void AudioPlayer::onUpdateTimerTimeout() {
 void AudioPlayer::onStateChanged(int state_) {
   QAudio::State state = static_cast<QAudio::State>(state_);
   if ((state == QAudio::IdleState || state == QAudio::StoppedState) &&
-    m_compose_source->isEnd()) {
+      m_compose_source->isEnd()) {
     emit signalPlayFinished();
     m_update_timer.stop();
     qDebug() << "### play finished";

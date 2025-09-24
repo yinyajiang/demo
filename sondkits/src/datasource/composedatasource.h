@@ -6,7 +6,6 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 }
 
-class MixAudio;
 class ComposeDataSource : public DataSource {
 public:
   explicit ComposeDataSource(int64_t frame_size, AVSampleFormat sample_format);
@@ -24,6 +23,5 @@ protected:
 
 private:
   std::vector<std::shared_ptr<DataSource>> m_data_sources;
-  std::shared_ptr<MixAudio> m_mix_audio;
   AVSampleFormat m_sample_format;
 };

@@ -49,7 +49,6 @@ add_library(sondkits SHARED
   src/datasource/filedatasource.h
   src/datasource/memorydatasource.h
   src/datasource/composedatasource.h
-  src/datasource/mixaudio.h
   src/audiofilter/audiofilter.h
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
