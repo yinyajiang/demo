@@ -6,6 +6,9 @@
 #include <QTextStream>
 #include <QTimer>
 
+void exportCommand(const QString &config_file);
+void fetchCommand(const QString &filepath, bool base);
+
 #ifdef _WIN32
 int wmain(int argc, const wchar_t *argv[]) {
 #else
@@ -15,15 +18,16 @@ int main(int argc, char *argv[]) {
   QCommandLineParser parser;
 
   // 添加子命令
-  parser.addPositionalArgument("command", "Command to execute (fetch)");
+  parser.addPositionalArgument("command", "Command to execute (fetch, export)");
   parser.addPositionalArgument("args", "Command arguments", "[args...]");
 
-  // 添加全局选项
+  // 导出配置
   parser.addOption(QCommandLineOption("config", "config file", "config"));
 
   // 添加fetch命令的选项
   parser.addOption(
       QCommandLineOption("filepath", "Audio file path", "filepath"));
+  parser.addOption(QCommandLineOption("base", "fetch base info", "base"));
 
   parser.process(a);
 
@@ -33,7 +37,6 @@ int main(int argc, char *argv[]) {
   }
 
   const QString command = args.first();
-
   if (command == "fetch") {
     // 处理fetch命令
     QString filepath = parser.value("filepath");
@@ -80,11 +83,13 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
+  } else if (!parser.value("config").isEmpty()) {
+
+    return 0;
   } else {
     qCritical() << "Unknown command:" << command;
-    qCritical() << "Available commands: fetch";
+    qCritical() << "Available commands: fetch, export";
     return 1;
   }
-
   return 0;
 }
