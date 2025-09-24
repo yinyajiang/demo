@@ -12,6 +12,7 @@ extern "C" {
 #include "bpmfilter.h"
 #include "common.h"
 #include "keyfilter.h"
+#include "normsamplefilter.h"
 
 FetchAudioInfo::FetchAudioInfo() : m_stoped(false) {}
 
@@ -23,7 +24,7 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
   m_stoped.store(false);
   AudioFileInfo info;
   info.key = 0;
-  info.samples.clear();
+  info.samples_points.clear();
   info.consume_time_ms = 0;
   info.duration_seconds = 0;
   info.sample_format = "";
@@ -55,6 +56,7 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
   auto source = std::make_shared<DecodeDataSource>(tgt_frame_size, decode_queue);
   std::shared_ptr<BPMFilter> bpm_filter;
   std::shared_ptr<KeyFilter> key_filter;
+  std::shared_ptr<NormSampleFilter> norm_sample_filter;
   if (config.fetch_bpm) {
     bpm_filter = std::make_shared<BPMFilter>(tgt_sample_rate, tgt_channels, tgt_format);
     source->addFilter(bpm_filter);
@@ -63,15 +65,23 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
     key_filter = std::make_shared<KeyFilter>(tgt_sample_rate, tgt_channels, tgt_format);
     source->addFilter(key_filter);
   }
+  if (config.fetch_point_num > 0) {
+    norm_sample_filter = std::make_shared<NormSampleFilter>(tgt_sample_rate, tgt_channels, tgt_format, audio_decoder->durationSecond(), config.fetch_point_num);
+    source->addFilter(norm_sample_filter);
+  }
 
   source->consumeAll();
   if (bpm_filter) {
     info.bpm = bpm_filter->getBPM();
   }
-  if (config.fetch_key) {
+  if (key_filter) {
     info.key = key_filter->getKey();
     info.key_string = key_filter->keyToString(static_cast<KeyFinder::key_t>(info.key));
   }
+  if (norm_sample_filter) {
+    info.samples_points = norm_sample_filter->getSamplePoints();
+  }
+
 
   audio_decoder->close();
   decode_queue->stop();

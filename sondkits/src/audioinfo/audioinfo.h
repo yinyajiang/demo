@@ -15,13 +15,13 @@ struct AudioFileInfo {
   int duration_seconds;
   std::string sample_format;
   int consume_time_ms;
-  std::vector<float> samples;
+  std::vector<float> samples_points;
 };
 
 struct FetchConfig {
   bool fetch_bpm;
   bool fetch_key;
-  int  fetch_samples_num;
+  int  fetch_point_num;
 };
 
 class FetchAudioInfo {

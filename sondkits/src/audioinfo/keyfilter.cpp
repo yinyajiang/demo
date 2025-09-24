@@ -5,9 +5,10 @@
 #define KEY_FILTER_HOP_SIZE 96
 
 KeyFilter::KeyFilter(int sample_rate, int channels, AVSampleFormat format)
-    : AudioThroughFilter(KEY_FILTER_HOP_SIZE * sizeof(float), false) {
+    : AudioThroughFilter(false) {
   assert(channels == 1);
   assert(format == AV_SAMPLE_FMT_FLT);
+  setHopeProcessSize(KEY_FILTER_HOP_SIZE * sizeof(float));
 
   m_sampleRate = sample_rate;
 

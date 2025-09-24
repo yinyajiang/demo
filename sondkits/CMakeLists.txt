@@ -30,6 +30,7 @@ add_library(sondkits SHARED
   src/audioinfo/audioinfo.cpp
   src/audioinfo/bpmfilter.cpp
   src/audioinfo/keyfilter.cpp
+  src/audioinfo/normsamplefilter.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
   src/audioplay.cpp
@@ -54,6 +55,7 @@ add_library(sondkits SHARED
   src/audioinfo/audioinfo.h
   src/audioinfo/bpmfilter.h
   src/audioinfo/keyfilter.h
+  src/audioinfo/normsamplefilter.h
   src/audioplay.h
   src/audioplayer.h
 

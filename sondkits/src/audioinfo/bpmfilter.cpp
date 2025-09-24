@@ -6,10 +6,10 @@
 #define BPM_FILTER_BUF_SIZE 512
 
 BPMFilter::BPMFilter(int sample_rate, int channels, AVSampleFormat format)
-    : AudioThroughFilter(BPM_FILTER_HOP_SIZE * sizeof(float), true){
+    : AudioThroughFilter(true){
   assert(channels == 1);
   assert(format == AV_SAMPLE_FMT_FLT);
-
+  setHopeProcessSize(BPM_FILTER_HOP_SIZE * sizeof(float));
   m_tempo = new_aubio_tempo("default", BPM_FILTER_BUF_SIZE, BPM_FILTER_HOP_SIZE,
                             sample_rate);
 

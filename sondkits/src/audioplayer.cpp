@@ -145,7 +145,7 @@ AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) 
   FetchConfig fetch_config;
   fetch_config.fetch_bpm = true;
   fetch_config.fetch_key = true;
-  fetch_config.fetch_samples_num = fetch_samples_num;
+  fetch_config.fetch_point_num = fetch_samples_num;
   auto info = fetch_audio_info.fetchAudioInfo(fpath.toStdWString(), fetch_config);
   AudioInfo audio_info;
   audio_info.bpm = info.bpm;
@@ -156,7 +156,7 @@ AudioInfo AudioPlayer::fetchFullAudioInfo(QString fpath, int fetch_samples_num) 
   audio_info.duration_seconds = info.duration_seconds;
   audio_info.sample_format = QString::fromStdString(info.sample_format);
   audio_info.consume_time_ms = info.consume_time_ms;
-  audio_info.samples = info.samples;
+  audio_info.samples = info.samples_points;
   return audio_info;
 }
 

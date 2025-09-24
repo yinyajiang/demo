@@ -1,14 +1,12 @@
 #include "audiothroughfilter.h"
 
-AudioThroughFilter::AudioThroughFilter(int64_t hope_process_size,
-                                       bool auto_fill_in)
-    : AudioThroughFilter(hope_process_size, nullptr, auto_fill_in) {}
+AudioThroughFilter::AudioThroughFilter(bool auto_fill_in)
+    : AudioThroughFilter(nullptr,auto_fill_in) {}
 
 AudioThroughFilter::AudioThroughFilter(
-    int64_t hope_process_size,
     std::function<void(uint8_t *data, int64_t size)> real_process,
     bool auto_fill_in)
-    : AudioFilter(), m_hope_process_size(hope_process_size),
+    : AudioFilter(), m_hope_process_size(0),
       m_alter_sink_fun(real_process), m_auto_fill_in(auto_fill_in) {
   m_used_cache_size = 0;
 }
