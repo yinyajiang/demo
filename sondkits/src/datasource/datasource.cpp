@@ -26,11 +26,11 @@ bool DataSource::waitHasData(std::chrono::milliseconds timeout) {
   bool timeout_flag = false;
   while (1) {
     is_end = isEnd();
-    if(is_end || bytesAvailable() > 0) {
+    if (is_end || bytesAvailable() > 0) {
       break;
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    if(std::chrono::steady_clock::now() - begin_time > timeout) {
+    if (std::chrono::steady_clock::now() - begin_time > timeout) {
       timeout_flag = true;
       break;
     }
@@ -40,9 +40,11 @@ bool DataSource::waitHasData(std::chrono::milliseconds timeout) {
 
 int64_t DataSource::frameSize() const { return m_frame_size; }
 
-bool DataSource::isEnd() { return m_aborted || (realIsEnd() && filterIsFlushed(0)); }
+bool DataSource::isEnd() {
+  return m_aborted || (realIsEnd() && filterIsFlushed(0));
+}
 
-void DataSource::consumeAll() {
+bool DataSource::consumeAll() {
   std::vector<uint8_t> buffer(m_frame_size * 1024);
   while (!isEnd()) {
     while (1) {
@@ -52,6 +54,7 @@ void DataSource::consumeAll() {
       }
     }
   }
+  return isEnd();
 }
 
 int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
@@ -66,9 +69,9 @@ int64_t DataSource::readData(uint8_t *data, int64_t max_size) {
     if (!m_audio_filters.empty()) {
       if (r == 0) {
         r = max_size;
-        filterFlushReceiveRemaining(findNoFlushedFilterIndex(),data, &r);
+        filterFlushReceiveRemaining(findNoFlushedFilterIndex(), data, &r);
       } else {
-        auto result = filterProcess(0,data, &r);
+        auto result = filterProcess(0, data, &r);
         if (result == AUDIO_PROCESS_RESULT_AGAIN) {
           continue;
         }
@@ -151,7 +154,8 @@ bool DataSource::filterIsFlushed(int start_filter_index) {
 }
 
 int DataSource::findNoFlushedFilterIndex() {
-  for (auto filter_index = 0; filter_index < m_audio_filters.size(); ++filter_index) {
+  for (auto filter_index = 0; filter_index < m_audio_filters.size();
+       ++filter_index) {
     auto &filter = m_audio_filters[filter_index];
     if (!filter->isFlushed()) {
       return filter_index;

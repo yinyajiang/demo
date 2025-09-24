@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 option(BUILD_QT_PLAYER "Build Qt Player" ON)
+option(BUILD_AUDIO_PROCESSOR "Build Audio Processor" ON)
 
 
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core Widgets Multimedia)
@@ -20,6 +21,7 @@ add_library(sondkits SHARED
   src/decode/audiodecoder.cpp
   src/decode/decodequeue.cpp
   src/encode/audioencoder.cpp
+  src/encode/encodefilter.cpp
   src/datasource/datasource.cpp
   src/datasource/decodedatasource.cpp
   src/datasource/filedatasource.cpp
@@ -27,6 +29,7 @@ add_library(sondkits SHARED
   src/datasource/composedatasource.cpp
   src/audiofilter/audioeffectsfilter.cpp
   src/audiofilter/audiothroughfilter.cpp
+  src/audiofilter/progressfilter.cpp
   src/audioinfo/audioinfo.cpp
   src/audioinfo/bpmfilter.cpp
   src/audioinfo/keyfilter.cpp
@@ -41,6 +44,7 @@ add_library(sondkits SHARED
   src/decode/audiodecoder.h
   src/decode/decodequeue.h
   src/encode/audioencoder.h
+  src/encode/encodefilter.h
   src/decode/decoder.h
   src/common/common.h
   src/common/audioutils.h
@@ -52,6 +56,7 @@ add_library(sondkits SHARED
   src/audiofilter/audiofilter.h
   src/audiofilter/audioeffectsfilter.h
   src/audiofilter/audiothroughfilter.h
+  src/audiofilter/progressfilter.h
   src/audioinfo/audioinfo.h
   src/audioinfo/bpmfilter.h
   src/audioinfo/keyfilter.h
@@ -146,6 +151,16 @@ if(BUILD_QT_PLAYER)
                         ./src
                         ./tools)
     target_link_libraries(qt-player PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
+endif()
+
+if(BUILD_AUDIO_PROCESSOR)
+    add_executable(audioprocessor
+        tools/audioprocessor/main.cpp
+    )
+    target_include_directories(audioprocessor PRIVATE  
+                    ./src
+                    ./3rd)
+    target_link_libraries(audioprocessor PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core)
 endif()
 
 

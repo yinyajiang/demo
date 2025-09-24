@@ -1,9 +1,9 @@
 #include "mainwindow.h"
+#include "audioexporter.h"
 #include <QtCore/QDebug>
 #include <QtCore/QFileInfo>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMessageBox>
-#include "audioexporter.h"
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_player(nullptr), m_isPlaying(false),
       m_isSliderPressed(false), m_totalDuration(0.0) {
@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent)
                    &MainWindow::onTimeProgress);
 
   m_exporter = std::make_unique<AudioExporter>();
-
 
   // 连接信号
   // connect(m_player, &AudioPlayer::stateChanged, this,
@@ -66,7 +65,7 @@ void MainWindow::setupUI() {
   m_stopButton = new QPushButton("停止");
   m_exportButtonMP3 = new QPushButton("导出MP3");
   m_exportButtonWAV = new QPushButton("导出WAV");
-  
+
   m_playPauseButton->setEnabled(false);
   m_stopButton->setEnabled(false);
 
@@ -79,8 +78,10 @@ void MainWindow::setupUI() {
   connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::stop);
   connect(m_playPauseButton, &QPushButton::clicked, this,
           &MainWindow::playPause);
-  connect(m_exportButtonMP3, &QPushButton::clicked, [this]() { onExport("mp3"); });
-  connect(m_exportButtonWAV, &QPushButton::clicked, [this]() { onExport("wav"); });
+  connect(m_exportButtonMP3, &QPushButton::clicked,
+          [this]() { onExport("mp3"); });
+  connect(m_exportButtonWAV, &QPushButton::clicked,
+          [this]() { onExport("wav"); });
 
   // 播放进度组
   auto progressGroup = new QGroupBox("播放进度");
@@ -128,9 +129,8 @@ void MainWindow::setupUI() {
   volumeLayout1->addWidget(m_volumeSlider1);
   volumeLayout1->addWidget(volumeValueLabel1);
   volumeLayout1->addStretch();
-  connect(m_volumeSlider1, &QSlider::valueChanged, [&](int value) {
-    onVolumeChanged(1, value);
-  });
+  connect(m_volumeSlider1, &QSlider::valueChanged,
+          [&](int value) { onVolumeChanged(1, value); });
 
   // 声道平衡控制组1
   auto balanceGroup1 = new QGroupBox("声道平衡1");
@@ -148,9 +148,8 @@ void MainWindow::setupUI() {
 
   m_balanceValueLabel1 = new QLabel("0");
   m_balanceValueLabel1->setFixedWidth(30);
-  connect(m_balanceSlider1, &QSlider::valueChanged, [&](int value) {
-    onBalanceChanged(1, value);
-  });
+  connect(m_balanceSlider1, &QSlider::valueChanged,
+          [&](int value) { onBalanceChanged(1, value); });
 
   // 添加左右标识
   auto leftLabel1 = new QLabel("左1");
@@ -165,7 +164,6 @@ void MainWindow::setupUI() {
   balanceLayout1->addWidget(m_balanceValueLabel1);
   balanceLayout1->addStretch();
 
-
   // 音量控制组2
   auto volumeGroup2 = new QGroupBox("音量控制2");
   auto volumeLayout2 = new QHBoxLayout(volumeGroup2);
@@ -176,20 +174,19 @@ void MainWindow::setupUI() {
   m_volumeSlider2->setFixedWidth(150);
 
   auto volumeValueLabel2 =
-    new QLabel(QString::number(m_volumeSlider2->value()) + "%");
+      new QLabel(QString::number(m_volumeSlider2->value()) + "%");
   connect(m_volumeSlider2, &QSlider::valueChanged,
-        [volumeValueLabel2](int value) {
-          volumeValueLabel2->setText(QString("%1%").arg(value));
-        });
+          [volumeValueLabel2](int value) {
+            volumeValueLabel2->setText(QString("%1%").arg(value));
+          });
 
   volumeLayout2->addWidget(m_volumeLabel2);
   volumeLayout2->addWidget(m_volumeSlider2);
   volumeLayout2->addWidget(volumeValueLabel2);
   volumeLayout2->addStretch();
 
-  connect(m_volumeSlider2, &QSlider::valueChanged, [&](int value) {
-    onVolumeChanged(2, value);
-  });
+  connect(m_volumeSlider2, &QSlider::valueChanged,
+          [&](int value) { onVolumeChanged(2, value); });
 
   // 声道平衡控制组2
   auto balanceGroup2 = new QGroupBox("声道平衡2");
@@ -208,9 +205,8 @@ void MainWindow::setupUI() {
   m_balanceValueLabel2 = new QLabel("0");
   m_balanceValueLabel2->setFixedWidth(30);
 
-  connect(m_balanceSlider2, &QSlider::valueChanged, [&](int value) {
-    onBalanceChanged(2, value);
-  });
+  connect(m_balanceSlider2, &QSlider::valueChanged,
+          [&](int value) { onBalanceChanged(2, value); });
 
   // 添加左右标识
   auto leftLabel2 = new QLabel("左2");
@@ -224,7 +220,6 @@ void MainWindow::setupUI() {
   balanceLayout2->addWidget(rightLabel2);
   balanceLayout2->addWidget(m_balanceValueLabel2);
   balanceLayout2->addStretch();
-
 
   // 速度控制组
   auto tempoGroup = new QGroupBox("速度控制");
@@ -382,8 +377,6 @@ void MainWindow::onTempoChanged(int tempo) {
   m_tempoValueLabel->setText(QString::number(tempo / 100.0));
 }
 
-
-
 void MainWindow::onTimeProgress(int64_t time_seconds) {
   if (!m_isSliderPressed && m_totalDuration > 0 && m_player) {
     int sliderValue = (int)((time_seconds / m_totalDuration) * 1000);
@@ -426,17 +419,30 @@ void MainWindow::onSemitoneChanged(int semitone) {
 }
 
 void MainWindow::onExport(QString ext) {
-  try{
-    m_exporter->open(std::vector<std::filesystem::path>{m_file1.toStdWString(), m_file2.toStdWString()});
+  try {
+    m_exporter->open(std::vector<std::filesystem::path>{
+        m_file1.toStdWString(), m_file2.toStdWString()});
     m_exporter->setTempo(m_tempoSlider->value() / 100.0);
     m_exporter->setSemitone(m_semitoneSlider->value());
     m_exporter->setVolume(0, m_volumeSlider1->value() / 100.0);
     m_exporter->setVolume(1, m_volumeSlider2->value() / 100.0);
     m_exporter->setVolumeBalance(0, m_balanceSlider1->value() / 100.0);
     m_exporter->setVolumeBalance(1, m_balanceSlider2->value() / 100.0);
-    
-    std::filesystem::path out_path = m_file1.toStdWString() + L"." + ext.toStdWString();
-    m_exporter->exportFile(out_path);
+    m_exporter->setProgressCallback([this](float progress) {
+      m_statusLabel->setText(QString("导出进度: %1%").arg(progress * 100));
+    });
+
+    std::vector<ExportItem> export_items;
+    export_items.push_back(ExportItem{0, m_file1.toStdWString() + L"_stream1." +
+                                             ext.toStdWString()});
+    if (m_file2 != m_file1) {
+      export_items.push_back(ExportItem{
+          1, m_file2.toStdWString() + L"_stream2." + ext.toStdWString()});
+    }
+    export_items.push_back(ExportItem{
+        -1, m_file1.toStdWString() + L"_compose." + ext.toStdWString()});
+
+    m_exporter->exportFiles(export_items);
     m_statusLabel->setText("导出成功");
   } catch (const std::exception &e) {
     QMessageBox::warning(this, "导出错误", e.what());

@@ -12,6 +12,8 @@ public:
   ~ComposeDataSource() override = default;
 
   void addDataSource(std::shared_ptr<DataSource> data_source);
+  int dataSourceCount() const { return m_data_sources.size(); };
+  DataSource &dataSource(int index) { return *m_data_sources[index]; };
 
   // 获取可用字节数
   int64_t bytesAvailable() const override;

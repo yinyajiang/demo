@@ -1,9 +1,9 @@
 
 #pragma once
 #include "audiofilter.h"
+#include <chrono>
 #include <memory>
 #include <vector>
-#include <chrono>
 
 class DataSource {
 public:
@@ -12,7 +12,7 @@ public:
   virtual int64_t bytesAvailable() const = 0;
   int64_t readData(uint8_t *data, int64_t size);
   bool isEnd();
-  void consumeAll();
+  bool consumeAll();
   void addFilter(std::shared_ptr<AudioFilter> filter);
   void abort();
   int64_t frameSize() const;
@@ -27,7 +27,7 @@ protected:
   FilterProcessResult filterProcess(int start_filter_index, uint8_t *data,
                                     int64_t *size);
   FilterProcessResult filterFlushReceiveRemaining(int start_filter_index,
-                                                 uint8_t *data, int64_t *size);
+                                                  uint8_t *data, int64_t *size);
   bool filterIsFlushed(int start_filter_index);
   int findNoFlushedFilterIndex();
 

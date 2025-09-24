@@ -11,14 +11,14 @@ class KeyFilter : public AudioThroughFilter {
 public:
   KeyFilter(int sample_rate, int channels, AVSampleFormat format);
   ~KeyFilter();
-  void clear() override{};
-  void throughSink(uint8_t *data, int64_t size) override;
-  KeyFinder::key_t getKey();
 
-  // 辅助函数：将 key_t 转换为可读字符串
+  KeyFinder::key_t getKey();
   static std::string keyToString(KeyFinder::key_t key);
 
 protected:
+  void throughSink(uint8_t *data, int64_t size) override;
+
+private:
   int m_sampleRate;
   // KeyFinder::KeyFinder m_keyFinder;
   // KeyFinder::Workspace m_workspace;
