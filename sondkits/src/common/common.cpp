@@ -5,9 +5,11 @@ extern "C" {
 }
 #include <thread>
 #include <filesystem>
+#include <vector>
+#include <cwchar>
+#include <cstdlib>
 #if _WIN32
 #include <Windows.h>
-#include <cwchar>
 #endif
 
 std::string avErr2String(int errnum) {
@@ -20,24 +22,6 @@ static int _WORKING_SAMPLE_RATE = 44100;
 int WORKING_SAMPLE_RATE() { return _WORKING_SAMPLE_RATE; }
 void SET_WORKING_SAMPLE_RATE(int sample_rate) { _WORKING_SAMPLE_RATE = sample_rate; }
 
-
-std::string fs2u8(const std::filesystem::path& path) {
-  #if _WIN32
-    std::wstring wide_path = path.wstring();
-    int buffer_size =
-        WideCharToMultiByte(CP_UTF8, 0, wide_path.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    if (buffer_size == 0) {
-        return std::string();
-    }
-    std::vector<char> buffer(buffer_size);
-    WideCharToMultiByte(
-        CP_UTF8, 0, wide_path.c_str(), -1, buffer.data(), buffer_size, nullptr, nullptr
-    );
-    return std::string(buffer.data());
-  #else
-    return path.string();
-  #endif
-  }
 
 void SpinLock::lock() {
   while (flag.test_and_set(std::memory_order_acquire)) {

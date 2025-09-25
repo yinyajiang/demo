@@ -36,6 +36,7 @@ add_library(sondkits SHARED
   src/audioinfo/normsamplefilter.cpp
   src/common/common.cpp
   src/common/audioutils.cpp
+  src/common/utils.cpp
   src/audioplay.cpp
   src/audioplayer.cpp
   src/audioexporter.cpp
@@ -47,6 +48,7 @@ add_library(sondkits SHARED
   src/encode/encodefilter.h
   src/decode/decoder.h
   src/common/common.h
+  src/common/utils.h
   src/common/audioutils.h
   src/datasource/datasource.h
   src/datasource/decodedatasource.h
@@ -149,18 +151,22 @@ if(BUILD_PLAYER)
     )
     target_include_directories(player PRIVATE  
                         ./src
-                        ./tools)
+                        ./src/common
+                        ./src/audioinfo
+                        ./tools/player)
     target_link_libraries(player PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
 endif()
 
 if(BUILD_AUDIO_PROCESSOR)
-    add_executable(audioprocessor
-        tools/audioprocessor/main.cpp
+    add_executable(audioprocess
+        tools/audioprocess/main.cpp
     )
-    target_include_directories(audioprocessor PRIVATE  
+    target_include_directories(audioprocess PRIVATE  
                     ./src
+                    ./src/common
+                    ./src/audioinfo
                     ./3rd)
-    target_link_libraries(audioprocessor PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core)
+    target_link_libraries(audioprocess PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core)
 endif()
 
 

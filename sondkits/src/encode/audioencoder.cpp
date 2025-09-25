@@ -69,6 +69,9 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
    av_channel_layout_default(&m_codec_ctx->ch_layout, config.out_channels);
    m_codec_ctx->time_base = av_make_q(1, m_codec_ctx->sample_rate);
    m_codec_ctx->pkt_timebase = m_codec_ctx->time_base;
+   if(config.out_codec_id == AV_CODEC_ID_MP3) {
+    m_codec_ctx->bit_rate = ENCODER_MP3_BIT_RATE;
+   }
 
    initSwr();
    m_frame = av_frame_alloc();

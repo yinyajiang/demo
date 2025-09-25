@@ -32,6 +32,9 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
   info.sample_rate = 0;
   info.bpm = 0;
   info.key_string = "";
+  info.thumbnail = "";
+  info.convert_to_wav_size = 0;
+  info.convert_to_mp3_size = 0;
 
   auto start_time = std::chrono::high_resolution_clock::now();
   auto audio_decoder =
@@ -42,6 +45,8 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
   info.sample_rate = audio_decoder->sampleRate();
   info.duration_seconds = (int)audio_decoder->durationSecond();
   info.sample_format = av_get_sample_fmt_name(audio_decoder->sampleFormat());
+  info.convert_to_wav_size = calculateConvertToWavSize(audio_decoder);
+  info.convert_to_mp3_size = calculateConvertToMp3Size(audio_decoder);
 
 
   int tgt_sample_rate = audio_decoder->targetSampleRate();
@@ -91,4 +96,21 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
       end_time - start_time);
   info.consume_time_ms = duration.count();
   return info;
+}
+
+
+int64_t FetchAudioInfo::calculateConvertToWavSize(
+    std::shared_ptr<AudioDecoder> audio_decoder) {
+  int64_t sample_rate = audio_decoder->sampleRate();
+  int64_t channels = audio_decoder->channels();
+  int64_t sample_format = audio_decoder->sampleFormat();
+  int64_t duration = audio_decoder->durationSecond();
+  int64_t size = sample_rate * channels * sample_format * duration;
+  return size;
+}
+
+int64_t FetchAudioInfo::calculateConvertToMp3Size(std::shared_ptr<AudioDecoder> audio_decoder) {
+  int64_t duration = audio_decoder->durationSecond();
+  int64_t size = ENCODER_MP3_BIT_RATE * duration / 8;
+  return size;
 }

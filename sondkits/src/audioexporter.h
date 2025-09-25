@@ -4,16 +4,8 @@
 #include <memory>
 #include <vector>
 #include <functional>
-
-#ifdef _WIN32
-#ifdef SOUNDKITS_EXPORTS
-#define SOUNDKITS_API __declspec(dllexport)
-#else
-#define SOUNDKITS_API __declspec(dllimport)
-#endif
-#else
-#define SOUNDKITS_API
-#endif
+#include "defexports.h"
+#include "audioinfo.h"
 
 struct ExportItem {
   int index;
@@ -33,6 +25,8 @@ public:
   explicit AudioExporter();
   ~AudioExporter();
 
+  static AudioFileInfo fetchAudioInfo(const std::filesystem::path &fpath, int fetch_samples_num, bool fetch_bpm, bool fetch_key);
+
   void open(const std::vector<std::filesystem::path> &in_fpaths);
   void stop();
   void setVolume(int stream_index, float volume);
@@ -40,7 +34,7 @@ public:
   void setTempo(float tempo);
   void setSemitone(int semitone);
   void setProgressCallback(ProgressCallback progress_callback);
-  void exportFiles(const std::vector<ExportItem> &export_items);
+  bool exportFiles(const std::vector<ExportItem> &export_items);
 
 private:
   std::shared_ptr<AudioEffectsFilter> m_com_effects_filter;

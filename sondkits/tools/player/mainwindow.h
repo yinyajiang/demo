@@ -14,7 +14,6 @@
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
-
 #include "audioplayer.h"
 #include "audioexporter.h"
 

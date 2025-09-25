@@ -3,6 +3,8 @@
 #include <atomic>
 #include <string>
 #include <filesystem>
+#include "utils.h"
+
 
 // ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
 // ffplay -f s32le -ar 44100 -ch_layout stereo decode.pcm
@@ -14,6 +16,7 @@
 #define MAX_TEMPO 2.0f
 #define MIN_TEMPO 0.1f
 #define PLAYER_PROGRESS_TIMER_INTERVAL_MS 500
+#define ENCODER_MP3_BIT_RATE 320000
 
 
 
@@ -34,4 +37,4 @@ public:
 };
 
 std::string avErr2String(int errnum);
-std::string fs2u8(const std::filesystem::path& path);
+

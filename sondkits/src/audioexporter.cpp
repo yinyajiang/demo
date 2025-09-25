@@ -8,6 +8,17 @@
 #include "encodefilter.h"
 #include "progressfilter.h"
 #include "audioplay.h"
+#include "audioinfo.h"
+
+
+AudioFileInfo AudioExporter::fetchAudioInfo(const std::filesystem::path &fpath, int fetch_samples_num, bool fetch_bpm, bool fetch_key) {
+  FetchConfig fetch_config;
+  fetch_config.fetch_bpm = fetch_bpm;
+  fetch_config.fetch_key = fetch_key;
+  fetch_config.fetch_point_num = fetch_samples_num;
+  FetchAudioInfo fetcher;
+  return fetcher.fetchAudioInfo(fpath, fetch_config);
+}
 
 AudioExporter::AudioExporter()
     : m_com_effects_filter(nullptr), m_stoped(false) {}
@@ -110,7 +121,7 @@ void AudioExporter::setProgressCallback(ProgressCallback progress_callback) {
   m_progress_callback = progress_callback;
 }
 
-void AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
+bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
   std::vector<std::shared_ptr<AudioEncoder>> audio_encoders;
   AudioEncoderConfig encoder_config;
   encoder_config.in_sample_format = WORKING_SAMPLE_AV_FORMAT;
@@ -152,4 +163,5 @@ void AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
     }
   }
   stop();
+  return b;
 }

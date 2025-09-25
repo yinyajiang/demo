@@ -4,7 +4,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-class AudioDecoder;
+#include "defexports.h"
+
 
 struct AudioFileInfo {
   float bpm;
@@ -16,6 +17,9 @@ struct AudioFileInfo {
   std::string sample_format;
   int consume_time_ms;
   std::vector<float> samples_points;
+  std::string thumbnail;
+  int64_t convert_to_wav_size;
+  int64_t convert_to_mp3_size;
 };
 
 struct FetchConfig {
@@ -24,7 +28,8 @@ struct FetchConfig {
   int  fetch_point_num;
 };
 
-class FetchAudioInfo {
+class AudioDecoder;
+class SOUNDKITS_API FetchAudioInfo {
 public:
   FetchAudioInfo();
   ~FetchAudioInfo();
@@ -34,6 +39,8 @@ public:
 private:
   float detectBPM(std::shared_ptr<AudioDecoder> audio_decoder);
   int detectKey(std::shared_ptr<AudioDecoder> audio_decoder);
+  int64_t calculateConvertToWavSize(std::shared_ptr<AudioDecoder> audio_decoder);
+  int64_t calculateConvertToMp3Size(std::shared_ptr<AudioDecoder> audio_decoder);
 
 private:
   std::atomic<bool> m_stoped;
