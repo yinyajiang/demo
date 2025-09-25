@@ -73,7 +73,7 @@ std::string makeResultJson(int code, const std::string& message, const nlohmann:
   result["code"] = code;
   result["message"] = message;
   result["data"] = data;
-  return result.dump(0, ' ', true);
+  return result.dump(-1, ' ', true);
 }
 
 
@@ -88,25 +88,31 @@ void exportCommand(const QCommandLineParser& parser) {
   nlohmann::json config = nlohmann::json::parse(ifile);
 
   AudioExporter exporter;
-  exporter.setVolume(0, config["volume"]);
-  exporter.setTempo(config["tempo"]);
-  exporter.setSemitone(config["semitone"]);
   std::vector<std::filesystem::path> streams;
   nlohmann::json streamcfg = config["streams"];
   int count = streamcfg.size();
   for (int i = 0; i < count; i++) {
     streams.push_back(streamcfg[i]["path"].get<std::string>());
-    exporter.setVolume(i, streamcfg[i]["volumeBalance"]);
-    exporter.setVolumeBalance(i, streamcfg[i]["volumeBalance"]);
   }
   exporter.open(streams);
+  exporter.setTempo(config["tempo"]);
+  exporter.setSemitone(config["semitone"]);
+  for (int i = 0; i < count; i++) {
+    exporter.setVolume(i, streamcfg[i]["volume"]);
+    exporter.setVolumeBalance(i, streamcfg[i]["volumeBalance"]);
+  }
 
   std::filesystem::path outdir = config["outdir"].get<std::string>();
   std::string title = config["title"];
   std::string ext = config["ext"];
   std::vector<ExportItem> exports;
-  for (auto &i : config["exports"]) {
-    std::string type = streamcfg[i]["type"];
+  for (int i : config["exports"]) {
+    std::string type;
+    if(i==-1){
+        type = "mix";
+    }else{
+        type = streamcfg[i]["type"];
+    }
     ExportItem  item;
     item.index = i;
     item.dest = outdir / (title + "_" + type + "." + ext);

@@ -29,7 +29,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   if ((ret = avformat_open_input(&m_fmt_ctx, fs2u8(in_fpath).c_str(), nullptr,
                                  nullptr)) < 0) {
     throw std::runtime_error("[avformat_open_input]Could not open input file:" +
-                             avErr2String(ret));
+                             avErr2String(ret) + " " + fs2u8(in_fpath));
   }
 
   if ((ret = avformat_find_stream_info(m_fmt_ctx, nullptr)) < 0) {

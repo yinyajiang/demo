@@ -99,6 +99,11 @@ void AudioEncoder::open(const std::filesystem::path &file_path,
    stream->time_base = m_codec_ctx->time_base;
 
    if (!(m_format_ctx->oformat->flags & AVFMT_NOFILE)) {
+
+     if(!std::filesystem::exists(file_path.parent_path())) {
+        std::filesystem::create_directories(file_path.parent_path());
+     }
+     
      auto io_ret = avio_open(&m_format_ctx->pb, fs2u8(file_path).c_str(), AVIO_FLAG_WRITE);
      if (io_ret < 0) {
        throw std::runtime_error("Failed to open output: " + avErr2String(io_ret));
