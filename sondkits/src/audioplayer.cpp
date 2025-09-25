@@ -21,11 +21,13 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
   }
   m_stoped.store(false);
 
+  SET_WORKING_SAMPLE_RATE(AudioPlay::getPrefferedSampleRate());
+
   // decoder
   m_max_duration_ms = 0;
   for (const auto &in_fpath : m_in_fpaths) {
     auto audio_decoder = std::make_shared<AudioDecoder>(
-        WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
+        WORKING_SAMPLE_RATE(), WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
     audio_decoder->open(in_fpath);
     m_decoders.push_back(audio_decoder);
     m_max_duration_ms =
@@ -34,7 +36,7 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
 
   // audio play
   QAudioFormat audio_format;
-  audio_format.setSampleRate(WORKING_SAMPLE_RATE);
+  audio_format.setSampleRate(WORKING_SAMPLE_RATE());
   audio_format.setChannelCount(WORKING_CHANNELS);
   switch (WORKING_SAMPLE_AV_FORMAT) {
   case AV_SAMPLE_FMT_U8:
@@ -55,7 +57,7 @@ void AudioPlayer::open(const std::vector<QString> &in_fpaths_) {
 
   // compose filter
   AudioEffectsFilterConfig filter_config;
-  filter_config.sample_rate = WORKING_SAMPLE_RATE;
+  filter_config.sample_rate = WORKING_SAMPLE_RATE();
   filter_config.channels = WORKING_CHANNELS;
   filter_config.format = WORKING_SAMPLE_AV_FORMAT;
   filter_config.max_tempo = MAX_TEMPO;

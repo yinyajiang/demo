@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   }
 
   const QString command = args.first();
-  if (command == "fetch") {
+  if (command == "fetchinfo" || command == "fetch") {
     // 处理fetch命令
     QString filepath = parser.value("filepath");
     if (filepath.isEmpty()) {

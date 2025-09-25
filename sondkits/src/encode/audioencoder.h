@@ -11,10 +11,10 @@ extern "C" {
 
 struct AudioEncoderConfig {
   AVSampleFormat in_sample_format = WORKING_SAMPLE_AV_FORMAT;
-  int in_sample_rate = WORKING_SAMPLE_RATE;
+  int in_sample_rate = WORKING_SAMPLE_RATE();
   int in_channels = WORKING_CHANNELS;
   AVCodecID out_codec_id = AV_CODEC_ID_NONE;
-  int out_sample_rate = WORKING_SAMPLE_RATE;
+  int out_sample_rate = WORKING_SAMPLE_RATE();
   int out_channels = WORKING_CHANNELS;
   AVSampleFormat out_sample_format = WORKING_SAMPLE_AV_FORMAT;
   

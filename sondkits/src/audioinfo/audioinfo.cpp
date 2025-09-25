@@ -35,7 +35,7 @@ AudioFileInfo FetchAudioInfo::fetchAudioInfo(std::filesystem::path in_fpath, Fet
 
   auto start_time = std::chrono::high_resolution_clock::now();
   auto audio_decoder =
-      std::make_shared<AudioDecoder>(WORKING_SAMPLE_RATE, 1, AV_SAMPLE_FMT_FLT);
+      std::make_shared<AudioDecoder>(WORKING_SAMPLE_RATE(), 1, AV_SAMPLE_FMT_FLT);
   audio_decoder->open(in_fpath);
 
   info.channels = audio_decoder->channels();

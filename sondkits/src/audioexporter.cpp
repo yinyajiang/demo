@@ -2,10 +2,12 @@
 #include "audiodecoder.h"
 #include "audioeffectsfilter.h"
 #include "audioencoder.h"
+#include "common.h"
 #include "composedatasource.h"
 #include "decodedatasource.h"
 #include "encodefilter.h"
 #include "progressfilter.h"
+#include "audioplay.h"
 
 AudioExporter::AudioExporter()
     : m_com_effects_filter(nullptr), m_stoped(false) {}
@@ -17,11 +19,13 @@ void AudioExporter::open(const std::vector<std::filesystem::path> &in_fpaths_) {
   m_stoped.store(false);
   m_progress_callback = nullptr;
 
+  SET_WORKING_SAMPLE_RATE(AudioPlay::getPrefferedSampleRate());
+
   // decoder
   m_max_duration_ms = 0;
   for (const auto &in_fpath : m_in_fpaths) {
     auto audio_decoder = std::make_shared<AudioDecoder>(
-        WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
+        WORKING_SAMPLE_RATE(), WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT);
     audio_decoder->open(in_fpath);
     m_decoders.push_back(audio_decoder);
     m_max_duration_ms =
@@ -33,7 +37,7 @@ void AudioExporter::open(const std::vector<std::filesystem::path> &in_fpaths_) {
 
   // compose filter
   AudioEffectsFilterConfig filter_config;
-  filter_config.sample_rate = WORKING_SAMPLE_RATE;
+  filter_config.sample_rate = WORKING_SAMPLE_RATE();
   filter_config.channels = WORKING_CHANNELS;
   filter_config.format = WORKING_SAMPLE_AV_FORMAT;
   filter_config.max_tempo = MAX_TEMPO;
@@ -110,10 +114,10 @@ void AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
   std::vector<std::shared_ptr<AudioEncoder>> audio_encoders;
   AudioEncoderConfig encoder_config;
   encoder_config.in_sample_format = WORKING_SAMPLE_AV_FORMAT;
-  encoder_config.in_sample_rate = WORKING_SAMPLE_RATE;
+  encoder_config.in_sample_rate = WORKING_SAMPLE_RATE();
   encoder_config.in_channels = WORKING_CHANNELS;
   encoder_config.out_codec_id = AV_CODEC_ID_NONE;
-  encoder_config.out_sample_rate = WORKING_SAMPLE_RATE;
+  encoder_config.out_sample_rate = WORKING_SAMPLE_RATE();
   encoder_config.out_channels = WORKING_CHANNELS;
   encoder_config.out_sample_format = WORKING_SAMPLE_AV_FORMAT;
 
@@ -135,7 +139,7 @@ void AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
   }
   // progress
   auto progress_filter = std::make_shared<ProgressFilter>(
-      WORKING_SAMPLE_RATE, WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT,
+      WORKING_SAMPLE_RATE(), WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT,
       m_max_duration_ms / 1000, std::chrono::milliseconds(1000));
   m_compose_source->addFilter(progress_filter);
   progress_filter->setProgressCallback(m_progress_callback);

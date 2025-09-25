@@ -17,6 +17,8 @@ public:
                      QObject *parent = nullptr);
   ~AudioPlay();
 
+  static int getPrefferedSampleRate();
+
   void play();
   void stop();
   void pause();

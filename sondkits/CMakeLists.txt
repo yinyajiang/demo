@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
-option(BUILD_QT_PLAYER "Build Qt Player" ON)
+option(BUILD_PLAYER "Build Player" ON)
 option(BUILD_AUDIO_PROCESSOR "Build Audio Processor" ON)
 
 
@@ -141,16 +141,16 @@ target_include_directories(sondkits SYSTEM PRIVATE "${PROJECT_SOURCE_DIR}/3rd/so
 target_link_libraries(sondkits PUBLIC SoundTouch)
 
 
-if(BUILD_QT_PLAYER)
-    add_executable(qt-player
+if(BUILD_PLAYER)
+    add_executable(player
         tools/player/main.cpp
         tools/player/mainwindow.cpp
         tools/player/mainwindow.h
     )
-    target_include_directories(qt-player PRIVATE  
+    target_include_directories(player PRIVATE  
                         ./src
                         ./tools)
-    target_link_libraries(qt-player PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
+    target_link_libraries(player PRIVATE sondkits Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia)
 endif()
 
 if(BUILD_AUDIO_PROCESSOR)

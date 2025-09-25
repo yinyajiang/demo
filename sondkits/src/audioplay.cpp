@@ -46,14 +46,30 @@ qint64 PCMDataSourceDevice::getIOdevicePlayedBytes() const {
   return m_iodevice_played_bytes.load();
 }
 
+int AudioPlay::getPrefferedSampleRate() {
+  auto audiodevice = QMediaDevices::defaultAudioOutput();
+  int sample_rate = 0;
+  if(audiodevice.minimumSampleRate() == audiodevice.maximumSampleRate()) {
+    sample_rate = audiodevice.minimumSampleRate();
+  }else if(audiodevice.minimumSampleRate() <= 44100){
+    sample_rate = 44100;
+  }
+  if(sample_rate == 0) {
+    sample_rate = audiodevice.maximumSampleRate();
+  }
+  return sample_rate;
+}
+
 AudioPlay::AudioPlay(QAudioFormat audio_format,
                      std::shared_ptr<DataSource> source, QObject *parent)
     : QObject(parent), m_audio_format(audio_format), m_tempo(1.0){
 
   auto audiodevice = QMediaDevices::defaultAudioOutput();
   if (!audiodevice.isFormatSupported(audio_format)) {
-    qWarning() << "Audio format not supported";
-    return;
+    qWarning() << "******* Audio format not supported ***** ";
+    qWarning() << "******* sample rate: " << audio_format.sampleRate() << " ***** ";
+    qWarning() << "******* channel count: " << audio_format.channelCount() << " ***** ";
+    qWarning() << "******* sample format: " << audio_format.sampleFormat() << " ***** ";
   }
   m_audio_sink = std::make_unique<QAudioSink>(audiodevice, audio_format, this);
   m_pcm_source = std::make_shared<PCMDataSourceDevice>(source, this);

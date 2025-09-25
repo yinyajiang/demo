@@ -16,6 +16,11 @@ std::string avErr2String(int errnum) {
   return std::string(errbuf);
 }
 
+static int _WORKING_SAMPLE_RATE = 44100;
+int WORKING_SAMPLE_RATE() { return _WORKING_SAMPLE_RATE; }
+void SET_WORKING_SAMPLE_RATE(int sample_rate) { _WORKING_SAMPLE_RATE = sample_rate; }
+
+
 std::string fs2u8(const std::filesystem::path& path) {
   #if _WIN32
     std::wstring wide_path = path.wstring();
