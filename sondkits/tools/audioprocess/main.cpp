@@ -11,6 +11,7 @@
 #include <fstream>
 #include <filesystem>
 #include "common.h"
+#include <algorithm>
 #ifdef _WIN32
 #include <windows.h>
 #include <conio.h>
@@ -120,7 +121,7 @@ void exportCommand(const QCommandLineParser& parser) {
   }
 
   exporter.setProgressCallback([](float progress) {
-    std::cout << makeResultJson(1, "progress", std::max(0.0f, std::min(progress*100, 100.0f))) << std::endl;
+    std::cout << makeResultJson(1, "progress", std::max<float>(0.0f, std::min<float>(progress*100, 100.0f))) << std::endl;
   });
 
   auto b = exporter.exportFiles(exports);

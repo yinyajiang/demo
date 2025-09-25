@@ -7,17 +7,9 @@
 #include <Windows.h>
 #endif
 
-std::string fs2u8(const std::filesystem::path& path) {
-  #if _WIN32
-    std::wstring wide_path = path.wstring();
-    return ws2u8(wide_path);
-  #else
-    return path.string();
-  #endif
-}
 
 std::string ws2u8(const std::wstring &ws) {
-  #if _WIN32
+#if _WIN32
     int buffer_size =
         WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), -1, nullptr, 0, nullptr, nullptr);
     if (buffer_size == 0) {
@@ -26,10 +18,9 @@ std::string ws2u8(const std::wstring &ws) {
     std::vector<char> buffer(buffer_size);
     WideCharToMultiByte(
         CP_UTF8, 0, ws.c_str(), -1, buffer.data(), buffer_size, nullptr, nullptr
-    );
+        );
     return std::string(buffer.data());
-  #else
-    // 在非Windows平台，使用locale转换宽字符到UTF-8
+#else
     std::mbstate_t state = std::mbstate_t();
     const wchar_t* src = ws.c_str();
     size_t len = std::wcsrtombs(nullptr, &src, 0, &state);
@@ -40,5 +31,15 @@ std::string ws2u8(const std::wstring &ws) {
     src = ws.c_str();
     std::wcsrtombs(buffer.data(), &src, len + 1, &state);
     return std::string(buffer.data());
+#endif
+}
+
+std::string fs2u8(const std::filesystem::path& path) {
+  #if _WIN32
+    std::wstring wide_path = path.wstring();
+    return ws2u8(wide_path);
+  #else
+    return path.string();
   #endif
 }
+
