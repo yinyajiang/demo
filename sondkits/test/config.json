@@ -1,0 +1,26 @@
+{
+    "streams": [
+        {
+            "path": "../test/青花瓷_Instrumental.mp3",
+            "volumeBalance": 0,
+            "type": "instrumental",
+            "volume": 1
+        },
+        {
+            "path": "../test/青花瓷_Vocals.mp3",
+            "volumeBalance": 0,
+            "type": "vocals",
+            "volume": 1
+        }
+    ],
+    "tempo": 1,
+    "semitone": 0,
+    "title": "青花瓷",
+    "outdir": "../test/output",
+    "ext": "mp3",
+    "exports": [
+        -1,
+        0,
+        1
+    ]
+}
