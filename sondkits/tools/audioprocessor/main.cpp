@@ -9,11 +9,8 @@
 void exportCommand(const QString &config_file);
 void fetchCommand(const QString &filepath, bool base);
 
-#ifdef _WIN32
-int wmain(int argc, const wchar_t *argv[]) {
-#else
+
 int main(int argc, char *argv[]) {
-#endif
   QCoreApplication a(argc, argv);
   QCommandLineParser parser;
 

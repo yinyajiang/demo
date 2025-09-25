@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 #include <vector>
+#include <functional>
 
 #ifdef _WIN32
 #ifdef SOUNDKITS_EXPORTS
