@@ -51,7 +51,7 @@ int AudioPlay::getPrefferedSampleRate() {
   int sample_rate = 0;
   if(audiodevice.minimumSampleRate() == audiodevice.maximumSampleRate()) {
     sample_rate = audiodevice.minimumSampleRate();
-  }else if(audiodevice.minimumSampleRate() <= 44100){
+  }else if(audiodevice.minimumSampleRate() <= 44100 && audiodevice.maximumSampleRate() >= 44100){
     sample_rate = 44100;
   }
   if(sample_rate == 0) {
