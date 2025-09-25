@@ -1,11 +1,11 @@
 #pragma once
+#include "audioinfo.h"
+#include "defexports.h"
 #include <atomic>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
-#include "defexports.h"
-#include "audioinfo.h"
 
 struct ExportItem {
   int index;
@@ -25,7 +25,9 @@ public:
   explicit AudioExporter();
   ~AudioExporter();
 
-  static AudioFileInfo fetchAudioInfo(const std::filesystem::path &fpath, int fetch_samples_num, bool fetch_bpm, bool fetch_key);
+  static AudioFileInfo fetchAudioInfo(const std::filesystem::path &fpath,
+                                      int fetch_samples_num, bool fetch_bpm,
+                                      bool fetch_key);
 
   void open(const std::vector<std::filesystem::path> &in_fpaths);
   void stop();

@@ -19,6 +19,13 @@ void ProgressFilter::setProgressCallback(ProgressCallback progress_callback) {
   m_progress_callback = progress_callback;
 }
 
+void ProgressFilter::progressFinished() {
+  if (!m_progress_callback) {
+    return;
+  }
+  m_progress_callback(1.0f);
+}
+
 void ProgressFilter::throughSink(uint8_t *, int64_t size) {
   if (!m_progress_callback || m_size_per_second == 0 ||
       m_total_duration_seconds <= 0) {

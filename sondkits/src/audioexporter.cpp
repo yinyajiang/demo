@@ -2,16 +2,17 @@
 #include "audiodecoder.h"
 #include "audioeffectsfilter.h"
 #include "audioencoder.h"
+#include "audioinfo.h"
+#include "audioplay.h"
 #include "common.h"
 #include "composedatasource.h"
 #include "decodedatasource.h"
 #include "encodefilter.h"
 #include "progressfilter.h"
-#include "audioplay.h"
-#include "audioinfo.h"
 
-
-AudioFileInfo AudioExporter::fetchAudioInfo(const std::filesystem::path &fpath, int fetch_samples_num, bool fetch_bpm, bool fetch_key) {
+AudioFileInfo AudioExporter::fetchAudioInfo(const std::filesystem::path &fpath,
+                                            int fetch_samples_num,
+                                            bool fetch_bpm, bool fetch_key) {
   FetchConfig fetch_config;
   fetch_config.fetch_bpm = fetch_bpm;
   fetch_config.fetch_key = fetch_key;
@@ -161,6 +162,7 @@ bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
       encoder->flush();
       encoder->close();
     }
+    progress_filter->progressFinished();
   }
   stop();
   return b;

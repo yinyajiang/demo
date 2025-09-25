@@ -16,6 +16,7 @@ public:
   ~ProgressFilter();
 
   void setProgressCallback(ProgressCallback progress_callback);
+  void progressFinished();
 
 protected:
   void throughSink(uint8_t *, int64_t size) override;

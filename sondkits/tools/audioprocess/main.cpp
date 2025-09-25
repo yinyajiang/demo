@@ -1,31 +1,31 @@
+#include "audioexporter.h"
 #include "audioplayer.h"
+#include "common.h"
 #include "nlohmann/json.hpp"
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QTextStream>
 #include <QTimer>
-#include "audioexporter.h"
-#include <iostream>
-#include <csignal>
-#include <fstream>
-#include <filesystem>
-#include "common.h"
 #include <algorithm>
+#include <csignal>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #ifdef _WIN32
-#include <windows.h>
 #include <conio.h>
+#include <windows.h>
 #else
-#include <unistd.h>
 #include <sys/signal.h>
+#include <unistd.h>
 #endif
 
 volatile bool g_exit_requested = false;
-std::string makeResultJson(int code, const std::string& message, const nlohmann::json& data = nlohmann::json());
-void exportCommand(const QCommandLineParser& parser);
-void fetchCommand(const QCommandLineParser& parser);
+std::string makeResultJson(int code, const std::string &message,
+                           const nlohmann::json &data = nlohmann::json());
+void exportCommand(const QCommandLineParser &parser);
+void fetchCommand(const QCommandLineParser &parser);
 void setupSignalHandle();
-
 
 int main(int argc, char *argv[]) {
   QCoreApplication a(argc, argv);
@@ -43,13 +43,14 @@ int main(int argc, char *argv[]) {
   parser.addOption(
       QCommandLineOption("filepath", "Audio file path", "filepath"));
   parser.addOption(QCommandLineOption("base", "fetch base info"));
-  parser.addOption(QCommandLineOption("samplenum", "sample number", "samplenum", "0"));
+  parser.addOption(
+      QCommandLineOption("samplenum", "sample number", "samplenum", "0"));
   parser.process(a);
 
   const QStringList args = parser.positionalArguments();
   QString command = "export";
   if (!args.isEmpty()) {
-     command = args.first();
+    command = args.first();
   }
 
   try {
@@ -62,14 +63,14 @@ int main(int argc, char *argv[]) {
       return -1;
     }
     return 0;
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     std::cout << makeResultJson(-1, e.what()) << std::endl;
     return -1;
   }
 }
 
-
-std::string makeResultJson(int code, const std::string& message, const nlohmann::json& data) {
+std::string makeResultJson(int code, const std::string &message,
+                           const nlohmann::json &data) {
   nlohmann::json result;
   result["code"] = code;
   result["message"] = message;
@@ -77,8 +78,7 @@ std::string makeResultJson(int code, const std::string& message, const nlohmann:
   return result.dump(-1, ' ', true);
 }
 
-
-void exportCommand(const QCommandLineParser& parser) {
+void exportCommand(const QCommandLineParser &parser) {
   QString config_file = parser.value("config");
   if (config_file.isEmpty()) {
     throw std::runtime_error("config is required");
@@ -109,31 +109,34 @@ void exportCommand(const QCommandLineParser& parser) {
   std::vector<ExportItem> exports;
   for (int i : config["exports"]) {
     std::string type;
-    if(i==-1){
-        type = "mix";
-    }else{
-        type = streamcfg[i]["type"];
+    if (i == -1) {
+      type = "mix";
+    } else {
+      type = streamcfg[i]["type"];
     }
-    ExportItem  item;
+    ExportItem item;
     item.index = i;
     item.dest = outdir / (title + "_" + type + "." + ext);
     exports.push_back(item);
   }
 
-  exporter.setProgressCallback([](float progress) {
-    std::cout << makeResultJson(1, "progress", std::max<float>(0.0f, std::min<float>(progress*100, 100.0f))) << std::endl;
+  nlohmann::json progress_json;
+  exporter.setProgressCallback([&](float progress) {
+    progress_json["progress"] =
+        std::max<float>(0.0f, std::min<float>(progress * 100, 100.0f));
+    std::cout << makeResultJson(1, "progress", progress_json) << std::endl;
   });
 
   auto b = exporter.exportFiles(exports);
   if (b) {
-    std::cout << makeResultJson(0, "success") << std::endl;
+    progress_json["progress"] = 100.0f;
+    std::cout << makeResultJson(0, "success", progress_json) << std::endl;
   } else {
     std::cout << makeResultJson(-1, "failed") << std::endl;
   }
 }
 
-
-void fetchCommand(const QCommandLineParser& parser) {
+void fetchCommand(const QCommandLineParser &parser) {
   QString filepath = parser.value("filepath");
   if (filepath.isEmpty()) {
     throw std::runtime_error("filepath is required");
@@ -142,7 +145,8 @@ void fetchCommand(const QCommandLineParser& parser) {
   bool base = parser.isSet("base");
   int samplenum = parser.value("samplenum").toInt();
 
-  AudioFileInfo info = AudioExporter::fetchAudioInfo(filepath.toStdWString(), samplenum, !base, !base);
+  AudioFileInfo info = AudioExporter::fetchAudioInfo(filepath.toStdWString(),
+                                                     samplenum, !base, !base);
   nlohmann::json data;
   data["bpm"] = info.bpm;
   data["key"] = info.key;
@@ -158,29 +162,30 @@ void fetchCommand(const QCommandLineParser& parser) {
   std::cout << makeResultJson(0, "success", data) << std::endl;
 }
 
-
 void signalHandler(int signal) {
-  std::cout << "Signal " << signal << " received, shutting down gracefully..." << std::endl;
+  std::cout << "Signal " << signal << " received, shutting down gracefully..."
+            << std::endl;
   g_exit_requested = true;
 }
 
 #ifdef _WIN32
 BOOL WINAPI consoleHandler(DWORD dwType) {
-    switch (dwType) {
-    case CTRL_C_EVENT:
-    case CTRL_BREAK_EVENT:
-    case CTRL_CLOSE_EVENT:
-    case CTRL_LOGOFF_EVENT:
-    case CTRL_SHUTDOWN_EVENT:
-        signalHandler(dwType);
-        return TRUE;
-    }
-    return FALSE;
+  switch (dwType) {
+  case CTRL_C_EVENT:
+  case CTRL_BREAK_EVENT:
+  case CTRL_CLOSE_EVENT:
+  case CTRL_LOGOFF_EVENT:
+  case CTRL_SHUTDOWN_EVENT:
+    signalHandler(dwType);
+    return TRUE;
+  }
+  return FALSE;
 }
 void setupWindowsSignalHandling() {
-    if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
-        std::cerr << "Warning: Could not set Windows console control handler" << std::endl;
-    }
+  if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
+    std::cerr << "Warning: Could not set Windows console control handler"
+              << std::endl;
+  }
 }
 #endif
 
@@ -190,8 +195,8 @@ void setupSignalHandle() {
   signal(SIGABRT, signalHandler);
   signal(SIGSEGV, signalHandler);
 #else
-  signal(SIGINT, signalHandler);  
-  signal(SIGTERM, signalHandler); 
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
   signal(SIGABRT, signalHandler);
   signal(SIGQUIT, signalHandler);
 #endif
