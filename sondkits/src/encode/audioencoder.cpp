@@ -42,13 +42,11 @@ void AudioEncoder::open(const std::filesystem::path &file_path, int in_sample_ra
     opts.sample_fmt = in_sample_format;
     opts.sample_rate = in_sample_rate;
     av_channel_layout_default(&opts.channel_layout, in_channels);
-    opts.bit_rate = 0;
     std::string extension = toLower(file_path.extension().string());
     if (extension == ".wav") {
         codec_id = pcmSampleFmt2CodecId(in_sample_format);
     } else if (extension == ".mp3") {
       codec_id = AV_CODEC_ID_MP3;
-      opts.bit_rate = ENCODER_MP3_BIT_RATE;
     } else {
         throw std::runtime_error("only support wav and mp3");
     }

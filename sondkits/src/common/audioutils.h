@@ -11,7 +11,6 @@ struct CodecOptions {
   AVSampleFormat sample_fmt;
   int sample_rate;
   AVChannelLayout channel_layout;
-  int bit_rate;
 };
 
 CodecOptions getPrefferCodecOptions(AVCodecID codec_id, CodecOptions hope);
