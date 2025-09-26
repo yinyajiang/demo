@@ -17,7 +17,7 @@ AudioDecoder::AudioDecoder(int target_sample_rate, int target_channels,
       m_target_channels(target_channels),
       m_target_sample_format(target_sample_format), m_target_sample_size(0),
       m_is_end(false), m_packet(nullptr), m_frame(nullptr) {
-  assert(av_sample_fmt_is_planar(target_sample_format) == 0);
+  assert(!av_sample_fmt_is_planar(target_sample_format));
 }
 
 AudioDecoder::~AudioDecoder() { close(); }
@@ -92,13 +92,10 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   }
 
   // 如果是完全满足要求的，则不需要重采样
-  if (m_target_channels <= 0 || m_target_sample_rate <= 0) {
-    m_swr_ctx = nullptr;
-    return;
-  }
   if (m_dec_ctx->sample_rate == m_target_sample_rate &&
       m_dec_ctx->ch_layout.nb_channels == m_target_channels &&
-      m_dec_ctx->sample_fmt == m_target_sample_format) {
+      m_dec_ctx->sample_fmt == m_target_sample_format &&
+      !av_sample_fmt_is_planar(m_dec_ctx->sample_fmt)) {
     m_swr_ctx = nullptr;
     return;
   }
@@ -247,6 +244,9 @@ FrameData AudioDecoder::resampleFrame(AVFrame *frame) {
     return FrameData{nullptr, 0};
   }
   if (!m_swr_ctx) {
+    if(av_sample_fmt_is_planar(m_dec_ctx->sample_fmt)){
+       throw std::runtime_error("planar sample format is must resample");
+    } 
     int size =
         av_samples_get_buffer_size(nullptr, m_dec_ctx->ch_layout.nb_channels,
                                    frame->nb_samples, m_dec_ctx->sample_fmt, 1);

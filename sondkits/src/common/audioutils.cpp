@@ -35,11 +35,15 @@ CodecOptions getPrefferCodecOptions(AVCodecID codec_id, CodecOptions hope) {
     }
     if (!found) {
       for (int i = 0; i < supported_fmts_count; i++) {
-        if (av_sample_fmt_is_planar(supported_fmts[i]) == 0) {
+        if (!av_sample_fmt_is_planar(supported_fmts[i])) {
           hope.sample_fmt = supported_fmts[i];
+          found = true;
           break;
         }
       }
+    }
+    if (!found && supported_fmts_count > 0) {
+      hope.sample_fmt = supported_fmts[0];
     }
   }
 

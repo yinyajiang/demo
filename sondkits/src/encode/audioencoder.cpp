@@ -22,7 +22,7 @@ AudioEncoder::AudioEncoder()
 AudioEncoder::~AudioEncoder() { close(); }
 
 void AudioEncoder::open(const std::filesystem::path &file_path, int in_sample_rate, int in_channels, AVSampleFormat in_sample_format) {
-    assert(av_sample_fmt_is_planar(in_sample_format) == 0);
+    assert(!av_sample_fmt_is_planar(in_sample_format));
     std::unique_lock<SpinLock> lock(m_lock);
     m_next_pts = 0;
 
@@ -98,7 +98,7 @@ void AudioEncoder::open(const std::filesystem::path &file_path, int in_sample_ra
                                 avErr2String(ret));
     }
     // Ensure encoder works with interleaved (packed) samples only
-    if (av_sample_fmt_is_planar((AVSampleFormat)m_codec_ctx->sample_fmt) != 0) {
+    if (av_sample_fmt_is_planar((AVSampleFormat)m_codec_ctx->sample_fmt)) {
         throw std::runtime_error("AudioEncoder only supports interleaved (packed) sample format");
     }
     ret = avcodec_parameters_from_context(stream->codecpar, m_codec_ctx);
@@ -127,7 +127,8 @@ void AudioEncoder::open(const std::filesystem::path &file_path, int in_sample_ra
 
     if (m_in_channels == m_codec_ctx->ch_layout.nb_channels &&
         m_in_sample_rate == m_codec_ctx->sample_rate &&
-        m_in_sample_format == m_codec_ctx->sample_fmt) {
+        m_in_sample_format == m_codec_ctx->sample_fmt &&
+        !av_sample_fmt_is_planar(m_in_sample_format)) {
         m_swr_ctx = nullptr;
     } else {
         initSwr();
@@ -355,6 +356,7 @@ void AudioEncoder::initSwr() {
 }
 
 int AudioEncoder::resample(uint8_t *data, int size, uint8_t **out_sample_buff) {
+  //data is interleaved
   out_sample_buff[0] = nullptr;
   if (!data || size <= 0 || !out_sample_buff) {
     return 0;
@@ -363,6 +365,9 @@ int AudioEncoder::resample(uint8_t *data, int size, uint8_t **out_sample_buff) {
                       av_get_bytes_per_sample(m_in_sample_format) /
                       m_in_channels;
   if (!m_swr_ctx) {
+    if(av_sample_fmt_is_planar(m_in_sample_format)){
+       throw std::runtime_error("planar sample format is must resample");
+    } 
     uint8_t* pdata = (uint8_t*)av_malloc(size);
     if (!pdata) {
       std::cerr << "Failed to allocate memory for audio data" << std::endl;
@@ -404,7 +409,13 @@ int AudioEncoder::resample(uint8_t *data, int size, uint8_t **out_sample_buff) {
     }
     return 0;
   }
-  out_sample_buff[0] = audio_data[0];
+  if(av_sample_fmt_is_planar(m_codec_ctx->sample_fmt)){
+    for (int i = 0; i < m_codec_ctx->ch_layout.nb_channels; i++) {
+        out_sample_buff[i] = audio_data[i];
+    }
+  } else {
+    out_sample_buff[0] = audio_data[0];
+  }
   av_freep(&audio_data);
   return out_nb_samples;
 }
@@ -442,7 +453,13 @@ int AudioEncoder::flushSwr(uint8_t **out_sample_buff) {
         }
         return 0;
     }
-    out_sample_buff[0] = audio_data[0];
+    if(av_sample_fmt_is_planar(m_codec_ctx->sample_fmt)){
+        for (int i = 0; i < m_codec_ctx->ch_layout.nb_channels; i++) {
+            out_sample_buff[i] = audio_data[i];
+        }
+    } else {
+        out_sample_buff[0] = audio_data[0];
+    }
     av_freep(&audio_data);
     return out_nb_samples;
 }
