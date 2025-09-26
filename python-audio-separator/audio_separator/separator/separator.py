@@ -99,6 +99,7 @@ class Separator:
         demucs_params={"segment_size": "Default", "shifts": 2, "overlap": 0.25, "segments_enabled": True},
         mdxc_params={"segment_size": 256, "override_model_segment_size": False, "batch_size": 1, "overlap": 8, "pitch_shift": 0},
         info_only=False,
+        additional_model_parameters_dir=None,
     ):
         """Initialize the separator."""
         self.logger = logging.getLogger(__name__)
@@ -131,6 +132,8 @@ class Separator:
                 self.logger.info("Output directory not specified. Using current working directory.")
 
         self.output_dir = output_dir
+
+        self.additional_model_parameters_dir = additional_model_parameters_dir
 
         # Check for environment variable to override model_file_dir
         env_model_dir = os.environ.get("AUDIO_SEPARATOR_MODEL_DIR")
@@ -342,6 +345,11 @@ class Separator:
         """
         This method returns the MD5 hash of a given model file.
         """
+        if self.model_filenames_hash:
+            model_name = os.path.basename(model_path)
+            if model_name in self.model_filenames_hash:
+                return self.model_filenames_hash[model_name]
+        
         self.logger.debug(f"Calculating hash of model file {model_path}")
         # Use the specific byte count from the original logic
         BYTES_TO_HASH = 10000 * 1024  # 10,240,000 bytes
@@ -494,8 +502,7 @@ class Separator:
         # Load the model scores with error handling
         model_scores = {}
         try:
-            with resources.open_text("audio_separator", "models-scores.json") as f:
-                model_scores = json.load(f)
+            model_scores = self.load_additional_model_parameters("audio_separator", "models-scores.json")
             self.logger.debug(f"Model scores loaded")
         except json.JSONDecodeError as e:
             self.logger.warning(f"Failed to load model scores: {str(e)}")
@@ -520,8 +527,7 @@ class Separator:
                 }
 
         # Load the JSON file using importlib.resources
-        with resources.open_text("audio_separator", "models.json") as f:
-            audio_separator_models_list = json.load(f)
+        audio_separator_models_list = self.load_additional_model_parameters("audio_separator", "models.json")
         self.logger.debug(f"Audio-Separator model list loaded")
 
         # Return object with list of model names
@@ -572,8 +578,9 @@ class Separator:
         This method prints a message to the user if they have downloaded a VIP model, reminding them to support Anjok07 on Patreon.
         """
         if self.model_is_uvr_vip:
-            self.logger.warning(f"The model: '{self.model_friendly_name}' is a VIP model, intended by Anjok07 for access by paying subscribers only.")
-            self.logger.warning("If you are not already subscribed, please consider supporting the developer of UVR, Anjok07 by subscribing here: https://patreon.com/uvr")
+            pass
+            #self.logger.warning(f"The model: '{self.model_friendly_name}' is a VIP model, intended by Anjok07 for access by paying subscribers only.")
+            #self.logger.warning("If you are not already subscribed, please consider supporting the developer of UVR, Anjok07 by subscribing here: https://patreon.com/uvr")
 
     def download_model_files(self, model_filename):
         """
@@ -694,8 +701,7 @@ class Separator:
 
         # Load additional model data from audio-separator
         self.logger.debug("Loading additional model parameters from audio-separator model data file...")
-        with resources.open_text("audio_separator", "model-data.json") as f:
-            audio_separator_model_data = json.load(f)
+        audio_separator_model_data = self.load_additional_model_parameters("audio_separator", "model-data.json")
 
         # Merge the model data objects, with audio-separator data taking precedence
         vr_model_data_object = {**vr_model_data_object, **audio_separator_model_data.get("vr_model_data", {})}
@@ -712,15 +718,19 @@ class Separator:
 
         return model_data
 
-    def load_model(self, model_filename="model_bs_roformer_ep_317_sdr_12.9755.ckpt"):
+    def load_model(self, model_filename="model_bs_roformer_ep_317_sdr_12.9755.ckpt", model_filename_hash=None):
         """
         This method instantiates the architecture-specific separation class,
         loading the separation model into memory, downloading it first if necessary.
         """
-        self.logger.info(f"Loading model {model_filename}...")
+        self.logger.info(f"Loading model {model_filename}..., hash: {model_filename_hash}")
+
+        if getattr(self, "model_filenames_hash", None) is None:
+            self.model_filenames_hash = {}
+        if model_filename_hash:
+           self.model_filenames_hash [model_filename] =  model_filename_hash
 
         load_model_start_time = time.perf_counter()
-
         # Setting up the model path
         model_filename, model_type, model_friendly_name, model_path, yaml_config_filename = self.download_model_files(model_filename)
         model_name = model_filename.split(".")[0]
@@ -957,3 +967,18 @@ class Separator:
                 return dict(sorted(filtered_list.items(), key=sort_key, reverse=True))
 
         return simplified_list
+
+    def load_additional_model_parameters(self, package, model_filename):
+        """
+        Loads additional model parameters from a directory.
+        """
+        if self.additional_model_parameters_dir:
+            model_parameters_path = os.path.join(self.additional_model_parameters_dir, model_filename)
+            if os.path.exists(model_parameters_path):
+                with open(model_parameters_path, "r") as f:
+                    return json.load(f)
+            else:
+                self.logger.warning(f"Additional model parameters file {model_parameters_path} not found")
+
+        with resources.open_text(package, model_filename) as f:
+            return json.load(f)
