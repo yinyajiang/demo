@@ -6,6 +6,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
+// no need to expose audio_fifo to headers users
 }
 #include "common.h"
 
@@ -50,4 +51,5 @@ private:
   SpinLock m_lock;
   SwrContext *m_swr_ctx;
   std::vector<uint8_t *> m_swr_in_data;
+  struct AVAudioFifo* m_fifo;
 };
