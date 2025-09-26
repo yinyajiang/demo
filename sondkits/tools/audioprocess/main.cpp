@@ -19,13 +19,16 @@
 #include <sys/signal.h>
 #include <unistd.h>
 #endif
-
-volatile bool g_exit_requested = false;
+#include <functional>
+#include <mutex>
+std::mutex g_mutex;
+std::function<void()> g_exit_signal_handler;
 std::string makeResultJson(int code, const std::string &message,
                            const nlohmann::json &data = nlohmann::json());
 void exportCommand(const QCommandLineParser &parser);
 void fetchCommand(const QCommandLineParser &parser);
 void setupSignalHandle();
+void setExitSignalHandler(std::function<void()> handler);
 
 int main(int argc, char *argv[]) {
   QCoreApplication a(argc, argv);
@@ -123,11 +126,13 @@ void exportCommand(const QCommandLineParser &parser) {
 
   nlohmann::json progress_json;
   exporter.setProgressCallback([&](float progress) {
-      float v = std::max<float>(0.0f, std::min<float>(progress * 100, 100.0f));
+    float v = std::max<float>(0.0f, std::min<float>(progress * 100, 100.0f));
     progress_json["progress"] = v;
     std::cout << makeResultJson(1, "progress", progress_json) << std::endl;
   });
-
+  setExitSignalHandler([&]() {
+    exporter.stop();
+  });
   auto b = exporter.exportFiles(exports);
   if (b) {
     progress_json["progress"] = 100.0f;
@@ -165,10 +170,17 @@ void fetchCommand(const QCommandLineParser &parser) {
   std::cout << makeResultJson(0, "success", data) << std::endl;
 }
 
+void setExitSignalHandler(std::function<void()> handler) {
+  std::lock_guard<std::mutex> lock(g_mutex);
+  g_exit_signal_handler = handler;
+}
+
 void signalHandler(int signal) {
-  std::cout << "Signal " << signal << " received, shutting down gracefully..."
-            << std::endl;
-  g_exit_requested = true;
+  qDebug() << "!!!! received exit signal !!!!!" << signal;
+  std::lock_guard<std::mutex> lock(g_mutex);
+  if (g_exit_signal_handler) {
+    g_exit_signal_handler();
+  }
 }
 
 #ifdef _WIN32
