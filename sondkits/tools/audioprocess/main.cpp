@@ -135,8 +135,15 @@ void exportCommand(const QCommandLineParser &parser) {
   });
   auto b = exporter.exportFiles(exports);
   if (b) {
-    progress_json["progress"] = 100.0f;
-    std::cout << makeResultJson(0, "success", progress_json) << std::endl;
+    nlohmann::json dataj;
+    dataj["files"] = nlohmann::json::array();
+    for (auto &item : exports) {
+      nlohmann::json filej;
+      filej["index"] = item.index;
+      filej["path"] = fs2u8(item.dest);
+      dataj["files"].push_back(filej);
+    }
+    std::cout << makeResultJson(0, "success", dataj) << std::endl;
     qDebug() << "progress success";
   } else {
     std::cout << makeResultJson(-1, "failed") << std::endl;
