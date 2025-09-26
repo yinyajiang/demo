@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   try {
     if (command == "fetchinfo" || command == "fetch") {
       fetchCommand(parser);
-    } else if (!parser.value("config").isEmpty()) {
+    } else if (command == "process" || command == "export") {
       exportCommand(parser);
     } else {
       std::cout << makeResultJson(-1, "Unknown command") << std::endl;
