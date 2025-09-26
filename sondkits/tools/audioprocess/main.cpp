@@ -1,6 +1,5 @@
 #include "audioexporter.h"
 #include "audioplayer.h"
-#include "common.h"
 #include "nlohmann/json.hpp"
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -12,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include "utils.h"
 #ifdef _WIN32
 #include <conio.h>
 #include <windows.h>
@@ -64,6 +64,7 @@ int main(int argc, char *argv[]) {
     }
     return 0;
   } catch (const std::exception &e) {
+    qDebug() << e.what();
     std::cout << makeResultJson(-1, e.what()) << std::endl;
     return -1;
   }
@@ -93,7 +94,7 @@ void exportCommand(const QCommandLineParser &parser) {
   nlohmann::json streamcfg = config["streams"];
   int count = streamcfg.size();
   for (int i = 0; i < count; i++) {
-    streams.push_back(streamcfg[i]["path"].get<std::string>());
+    streams.push_back(u82fs(streamcfg[i]["path"]));
   }
   exporter.open(streams);
   exporter.setTempo(config["tempo"]);
@@ -103,7 +104,7 @@ void exportCommand(const QCommandLineParser &parser) {
     exporter.setVolumeBalance(i, streamcfg[i]["volumeBalance"]);
   }
 
-  std::filesystem::path outdir = config["outdir"].get<std::string>();
+  std::filesystem::path outdir = u82fs(config["outdir"]);
   std::string title = config["title"];
   std::string ext = config["ext"];
   std::vector<ExportItem> exports;
@@ -116,14 +117,14 @@ void exportCommand(const QCommandLineParser &parser) {
     }
     ExportItem item;
     item.index = i;
-    item.dest = outdir / (title + "_" + type + "." + ext);
+    item.dest = outdir / u82fs((title + "_" + type + "." + ext));
     exports.push_back(item);
   }
 
   nlohmann::json progress_json;
   exporter.setProgressCallback([&](float progress) {
-    progress_json["progress"] =
-        std::max<float>(0.0f, std::min<float>(progress * 100, 100.0f));
+      float v = std::max<float>(0.0f, std::min<float>(progress * 100, 100.0f));
+    progress_json["progress"] = v;
     std::cout << makeResultJson(1, "progress", progress_json) << std::endl;
   });
 
@@ -131,8 +132,10 @@ void exportCommand(const QCommandLineParser &parser) {
   if (b) {
     progress_json["progress"] = 100.0f;
     std::cout << makeResultJson(0, "success", progress_json) << std::endl;
+    qDebug() << "progress success";
   } else {
     std::cout << makeResultJson(-1, "failed") << std::endl;
+    qDebug() << "progress failed";
   }
 }
 

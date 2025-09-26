@@ -6,4 +6,6 @@
 
 SOUNDKITS_API std::string fs2u8(const std::filesystem::path &path);
 SOUNDKITS_API std::string ws2u8(const std::wstring &ws);
+SOUNDKITS_API std::wstring u82ws(const std::string &u8);
 SOUNDKITS_API std::string toLower(const std::string &str);
+SOUNDKITS_API std::filesystem::path u82fs(const std::string &u8);
