@@ -124,15 +124,12 @@ void AudioExporter::setProgressCallback(ProgressCallback progress_callback) {
 
 bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
   std::vector<std::shared_ptr<AudioEncoder>> audio_encoders;
-  AudioEncoderConfig encoder_config;
-  encoder_config.in_sample_format = WORKING_SAMPLE_AV_FORMAT;
-  encoder_config.in_sample_rate = WORKING_SAMPLE_RATE();
-  encoder_config.in_channels = WORKING_CHANNELS;
-  encoder_config.out_codec_id = AV_CODEC_ID_NONE;
-  encoder_config.out_sample_rate = WORKING_SAMPLE_RATE();
-  encoder_config.out_channels = WORKING_CHANNELS;
-  encoder_config.out_sample_format = WORKING_SAMPLE_AV_FORMAT;
 
+
+  int sample_rate = m_decoders[0]->targetSampleRate();
+  int channels = m_decoders[0]->targetChannels();
+  AVSampleFormat sample_format = m_decoders[0]->targetSampleFormat();
+   
   // 配置编码器
   for (const auto &export_item : export_items) {
     if (export_item.dest.empty() ||
@@ -140,7 +137,7 @@ bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
       continue;
     }
     auto encoder = std::make_shared<AudioEncoder>();
-    encoder->open(export_item.dest, encoder_config);
+    encoder->open(export_item.dest, sample_rate, channels, sample_format);
     audio_encoders.push_back(encoder);
     if (export_item.index == -1) {
       m_compose_source->addFilter(std::make_shared<EncodeFilter>(encoder));
@@ -150,8 +147,7 @@ bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
     }
   }
   // progress
-  auto progress_filter = std::make_shared<ProgressFilter>(
-      WORKING_SAMPLE_RATE(), WORKING_CHANNELS, WORKING_SAMPLE_AV_FORMAT,
+  auto progress_filter = std::make_shared<ProgressFilter>(sample_rate, channels, sample_format,
       m_max_duration_ms / 1000, std::chrono::milliseconds(1000));
   m_compose_source->addFilter(progress_filter);
   progress_filter->setProgressCallback(m_progress_callback);
