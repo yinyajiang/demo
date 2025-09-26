@@ -14,6 +14,7 @@ extern "C" {
 #include "common.h"
 #include <iostream>
 #include <mutex>
+#include <cassert>
 
 AudioEncoder::AudioEncoder()
     : m_codec_ctx(nullptr), m_format_ctx(nullptr), m_swr_ctx(nullptr),
@@ -96,10 +97,6 @@ void AudioEncoder::open(const std::filesystem::path &file_path, int in_sample_ra
     if (ret < 0) {
         throw std::runtime_error("[avcodec_open2]: " +
                                 avErr2String(ret));
-    }
-    // Ensure encoder works with interleaved (packed) samples only
-    if (av_sample_fmt_is_planar((AVSampleFormat)m_codec_ctx->sample_fmt)) {
-        throw std::runtime_error("AudioEncoder only supports interleaved (packed) sample format");
     }
     ret = avcodec_parameters_from_context(stream->codecpar, m_codec_ctx);
     if (ret < 0) {
