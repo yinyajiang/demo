@@ -182,6 +182,9 @@ bool FetchAudioInfo::fetchThumbnailFromMetadata(
     if (data_bytes.empty()) {
       continue;
     }
+    if (!std::filesystem::exists(thumbnail.parent_path())) {
+      std::filesystem::create_directories(thumbnail.parent_path());
+    }
     std::ofstream out_file(thumbnail, std::ios::binary);
     if (out_file.is_open()) {
       out_file.write(reinterpret_cast<const char *>(data_bytes.data()),
@@ -215,6 +218,9 @@ bool FetchAudioInfo::fetchThumbnailFromAddStream(
   AVStream *cover_stream = fmt_ctx->streams[cover_stream_index];
   AVPacket &cover_pkt = cover_stream->attached_pic;
   if (cover_pkt.data && cover_pkt.size > 0) {
+    if (!std::filesystem::exists(thumbnail.parent_path())) {
+      std::filesystem::create_directories(thumbnail.parent_path());
+    }
     std::ofstream out_file(thumbnail, std::ios::binary);
     if (out_file.is_open()) {
       out_file.write(reinterpret_cast<const char *>(cover_pkt.data),
