@@ -83,6 +83,7 @@ void AudioDecoder::open(const std::filesystem::path &in_fpath) {
   m_channels = m_dec_ctx->ch_layout.nb_channels;
   m_sample_format = m_dec_ctx->sample_fmt;
   m_duration = m_fmt_ctx->duration;
+  m_in_fpath = in_fpath;
 
   if (m_packet == nullptr) {
     m_packet = av_packet_alloc();
@@ -111,6 +112,8 @@ int AudioDecoder::audioStreamIndex() const { return m_in_astream_idx; }
 int64_t AudioDecoder::durationSecond() const {
   return int64_t(m_duration / AV_TIME_BASE);
 }
+
+std::filesystem::path AudioDecoder::inFpath() const { return m_in_fpath; }
 
 int AudioDecoder::targetSampleRate() const { return m_target_sample_rate; }
 
@@ -244,9 +247,9 @@ FrameData AudioDecoder::resampleFrame(AVFrame *frame) {
     return FrameData{nullptr, 0};
   }
   if (!m_swr_ctx) {
-    if(av_sample_fmt_is_planar(m_dec_ctx->sample_fmt)){
-       throw std::runtime_error("planar sample format is must resample");
-    } 
+    if (av_sample_fmt_is_planar(m_dec_ctx->sample_fmt)) {
+      throw std::runtime_error("planar sample format is must resample");
+    }
     int size =
         av_samples_get_buffer_size(nullptr, m_dec_ctx->ch_layout.nb_channels,
                                    frame->nb_samples, m_dec_ctx->sample_fmt, 1);

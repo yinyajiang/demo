@@ -1,6 +1,7 @@
 #include "audioexporter.h"
 #include "audioplayer.h"
 #include "nlohmann/json.hpp"
+#include "utils.h"
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
@@ -11,7 +12,6 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include "utils.h"
 #ifdef _WIN32
 #include <conio.h>
 #include <windows.h>
@@ -48,6 +48,8 @@ int main(int argc, char *argv[]) {
   parser.addOption(QCommandLineOption("base", "fetch base info"));
   parser.addOption(
       QCommandLineOption("samplenum", "sample number", "samplenum", "0"));
+  parser.addOption(
+      QCommandLineOption("cachedir", "info file cache directory", "cachedir"));
   parser.process(a);
 
   const QStringList args = parser.positionalArguments();
@@ -130,9 +132,7 @@ void exportCommand(const QCommandLineParser &parser) {
     progress_json["progress"] = v;
     std::cout << makeResultJson(1, "progress", progress_json) << std::endl;
   });
-  setExitSignalHandler([&]() {
-    exporter.stop();
-  });
+  setExitSignalHandler([&]() { exporter.stop(); });
   auto b = exporter.exportFiles(exports);
   if (b) {
     nlohmann::json dataj;

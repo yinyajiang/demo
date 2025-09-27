@@ -1,13 +1,12 @@
 #pragma once
 
+#include "defexports.h"
 #include <QObject>
 #include <QString>
 #include <QTimer>
 #include <filesystem>
 #include <memory>
 #include <vector>
-#include "defexports.h"
-
 
 struct AudioInfo {
   float bpm;
@@ -28,7 +27,7 @@ class DecodeQueue;
 class DataSource;
 class ComposeDataSource;
 
-class SOUNDKITS_API AudioPlayer : public QObject {
+class SONDKITS_API AudioPlayer : public QObject {
   Q_OBJECT
 public:
   explicit AudioPlayer(QObject *parent = nullptr);

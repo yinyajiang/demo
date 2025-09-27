@@ -37,6 +37,7 @@ add_library(sondkits SHARED
   src/common/common.cpp
   src/common/audioutils.cpp
   src/common/utils.cpp
+  src/common/md5/md5.cpp
   src/audioplay.cpp
   src/audioplayer.cpp
   src/audioexporter.cpp
@@ -50,6 +51,7 @@ add_library(sondkits SHARED
   src/common/common.h
   src/common/utils.h
   src/common/audioutils.h
+  src/common/md5/md5.h
   src/datasource/datasource.h
   src/datasource/decodedatasource.h
   src/datasource/filedatasource.h
@@ -75,10 +77,11 @@ target_include_directories(sondkits PRIVATE .
                         ./src/datasource
                         ./src/audiofilter
                         ./src/audioinfo
-                        ./src/encode)
+                        ./src/encode
+                        ./3rd)
 
 target_link_libraries(sondkits PUBLIC Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Multimedia)
-target_compile_definitions(sondkits PRIVATE SOUNDKITS_EXPORTS)
+target_compile_definitions(sondkits PRIVATE SONDKITS_EXPORTS)
 
 include(GNUInstallDirs)
 install(TARGETS sondkits

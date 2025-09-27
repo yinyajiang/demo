@@ -1,5 +1,5 @@
-#include <algorithm>
 #include "utils.h"
+#include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <cwchar>
@@ -34,7 +34,7 @@ std::string ws2u8(const std::wstring &ws) {
 #endif
 }
 
-std::wstring u82ws(const std::string &u8){
+std::wstring u82ws(const std::string &u8) {
   if (u8.empty()) {
     return std::wstring();
   }
@@ -76,12 +76,29 @@ std::string toLower(const std::string &str) {
   return lower_str;
 }
 
-
-std::filesystem::path u82fs(const std::string &u8){
+std::filesystem::path u82fs(const std::string &u8) {
 #if _WIN32
   std::wstring wide_path = u82ws(u8);
   return std::filesystem::path(wide_path);
 #else
   return std::filesystem::path(u8);
 #endif
+}
+
+bool hasPrefix(const std::string &str, const std::string &prefix) {
+  return str.find(prefix) == 0;
+}
+
+bool hasSuffix(const std::string &str, const std::string &suffix) {
+  if (str.size() < suffix.size()) {
+    return false;
+  }
+  return str.find(suffix) == str.size() - suffix.size();
+}
+
+std::string cutPrefix(const std::string &str, const std::string &prefix) {
+  if (hasPrefix(str, prefix)) {
+    return str.substr(prefix.size());
+  }
+  return str;
 }

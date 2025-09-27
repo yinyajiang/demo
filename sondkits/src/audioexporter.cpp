@@ -12,11 +12,13 @@
 
 AudioFileInfo AudioExporter::fetchAudioInfo(const std::filesystem::path &fpath,
                                             int fetch_samples_num,
-                                            bool fetch_bpm, bool fetch_key) {
+                                            bool fetch_bpm, bool fetch_key,
+                                            std::filesystem::path cachedir) {
   FetchConfig fetch_config;
   fetch_config.fetch_bpm = fetch_bpm;
   fetch_config.fetch_key = fetch_key;
   fetch_config.fetch_point_num = fetch_samples_num;
+  fetch_config.cache_dir = cachedir;
   FetchAudioInfo fetcher;
   return fetcher.fetchAudioInfo(fpath, fetch_config);
 }
@@ -125,11 +127,10 @@ void AudioExporter::setProgressCallback(ProgressCallback progress_callback) {
 bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
   std::vector<std::shared_ptr<AudioEncoder>> audio_encoders;
 
-
   int sample_rate = m_decoders[0]->targetSampleRate();
   int channels = m_decoders[0]->targetChannels();
   AVSampleFormat sample_format = m_decoders[0]->targetSampleFormat();
-   
+
   // 配置编码器
   for (const auto &export_item : export_items) {
     if (export_item.dest.empty() ||
@@ -147,8 +148,9 @@ bool AudioExporter::exportFiles(const std::vector<ExportItem> &export_items) {
     }
   }
   // progress
-  auto progress_filter = std::make_shared<ProgressFilter>(sample_rate, channels, sample_format,
-      m_max_duration_ms / 1000, std::chrono::milliseconds(1000));
+  auto progress_filter = std::make_shared<ProgressFilter>(
+      sample_rate, channels, sample_format, m_max_duration_ms / 1000,
+      std::chrono::milliseconds(1000));
   m_compose_source->addFilter(progress_filter);
   progress_filter->setProgressCallback(m_progress_callback);
 

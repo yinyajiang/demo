@@ -20,14 +20,16 @@ class DecodeQueue;
 class DataSource;
 class ComposeDataSource;
 class AudioEncoder;
-class SOUNDKITS_API AudioExporter {
+class SONDKITS_API AudioExporter {
 public:
   explicit AudioExporter();
   ~AudioExporter();
 
   static AudioFileInfo fetchAudioInfo(const std::filesystem::path &fpath,
-                                      int fetch_samples_num, bool fetch_bpm,
-                                      bool fetch_key);
+                                      int fetch_samples_num = 0,
+                                      bool fetch_bpm = false,
+                                      bool fetch_key = false,
+                                      std::filesystem::path cachedir = "");
 
   void open(const std::vector<std::filesystem::path> &in_fpaths);
   void stop();

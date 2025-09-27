@@ -27,6 +27,7 @@ public:
   AVCodecContext *codecCtx() const;
   int audioStreamIndex() const;
   int64_t durationSecond() const;
+  std::filesystem::path inFpath() const;
   int targetSampleRate() const;
   int targetChannels() const;
   AVSampleFormat targetSampleFormat() const;
@@ -58,6 +59,7 @@ private:
   int m_channels;
   int64_t m_duration;
   AVSampleFormat m_sample_format;
+  std::filesystem::path m_in_fpath;
 
   std::atomic<bool> m_is_end;
   SpinLock m_lock;

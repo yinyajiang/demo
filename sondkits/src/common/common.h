@@ -1,10 +1,9 @@
 #pragma once
 
-#include <atomic>
-#include <string>
-#include <filesystem>
 #include "utils.h"
-
+#include <atomic>
+#include <filesystem>
+#include <string>
 
 // ffplay -f s16le -ar 44100 -ch_layout stereo decode.pcm
 // ffplay -f s32le -ar 44100 -ch_layout stereo decode.pcm
@@ -18,8 +17,6 @@
 #define PLAYER_PROGRESS_TIMER_INTERVAL_MS 500
 #define ENCODER_MP3_BIT_RATE 320000
 
-
-
 int WORKING_SAMPLE_RATE();
 void SET_WORKING_SAMPLE_RATE(int sample_rate);
 
@@ -30,12 +27,10 @@ private:
 public:
   SpinLock() = default;
   SpinLock(const SpinLock &) = delete;
-  SpinLock &operator=(const SpinLock&) = delete;
+  SpinLock &operator=(const SpinLock &) = delete;
   void lock();
   void unlock();
   bool try_lock();
 };
 
 std::string avErr2String(int errnum);
-
-
